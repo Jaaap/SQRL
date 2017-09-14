@@ -4,7 +4,7 @@
 This is a WebExtension for Chrome and Firefox that enables logging into SQRL-enabled webservers.
 
 ## How to use?
-While in development, you can clone or download this WebExtension, then build the xpi with a command like `cd SQRL; zip SQRL.xpi *`, then ...
+While in development, you can clone or download this WebExtension, then ...
 
 For **Chrome** go to chrome://extensions/, enable "Developer mode" and then "Load unpacked extension...". Point it to the root of the SQRL folder/dir you just created.
 
