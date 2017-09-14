@@ -3,7 +3,7 @@
 	"manifest_version": 2,
 	"name": "SQRL",
 	"version": "0.0.1",
-	"homepage_url": "https://jaaap.github.io/sqrl/",
+	"homepage_url": "https://github.com/Jaaap/SQRL",
 	"applications": {
 		"gecko": {
 			"id": "sqrl@pass.dog"
