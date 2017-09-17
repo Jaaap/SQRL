@@ -1,7 +1,8 @@
 {
-	"description": "Secure Quick Reliable Login",
+	"name": "__MSG_name__",
+	"description": "__MSG_description__",
+	"default_locale": "en",
 	"manifest_version": 2,
-	"name": "SQRL",
 	"version": "0.0.1",
 	"homepage_url": "https://github.com/Jaaap/SQRL",
 	"applications": {
@@ -25,7 +26,7 @@
 		"browser_style": true,
 		"default_icon": "icons/256.png",
 		"default_title": "SQRL",
-		"default_popup": "popup.html"
+		"default_popup": "__MSG_popup__"
 	},
 	"background": {
 		"scripts": ["sodium-asmjs.js","background.js"],

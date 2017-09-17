@@ -8,4 +8,4 @@ While in development, you can clone or download this WebExtension, then ...
 
 For **Chrome** go to chrome://extensions/, enable "Developer mode" and then "Load unpacked extension...". Point it to the root of the SQRL folder/dir you just created.
 
-For **Firefox**, go to about:addons, Click on the gear icon (⚙) pulldown, click "Install Addon From File..." and open the SQRL.xpi file. If the SQRL.xpi file does not exist it can be created with the command `zip -r SQRL.xpi *` in the root of the SQRL folder/dir. This requires the xpinstall.signatures.required setting in about:config to be set to false.
+For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r SQRL.xpi *` then open FireFox Developer Edition (normal Firefox will not work), go to about:config, search for xpinstall.signatures.required and set it to false, then go to about:addons, Click on the gear icon (⚙) pulldown, click "Install Addon From File..." and open the SQRL.xpi file.

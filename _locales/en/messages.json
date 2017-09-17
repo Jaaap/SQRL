@@ -1,0 +1,13 @@
+{
+	"name": {
+		"message": "SQRL",
+		"description": "Name of the extension."
+	},
+	"description": {
+		"message": "Secure Quick Reliable Login",
+		"description": "Description of the extension."
+	},
+	"popup": {
+		"message": "popup/en.html"
+	}
+}
