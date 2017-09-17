@@ -11,25 +11,29 @@ html,body { margin: 0; }
 body,label,input { font-size: 20px; }
 button { font-size: 18px; }
 textarea { font-size: 23px; }
-input[readonly] { font-family: monospace; }
+input[type="text"],input[type="password"] { border: 0 none; border-radius: 4px; padding: 0 6px; font-family: monospace; font-size: 18px; line-height: 26px; }
+::-webkit-input-placeholder { color: #CCC; }
+::-moz-placeholder { color: #CCC; }
+
 body { font-family: Verdana, Helvetica; height: 584px; width: 784px; }
 main { height: 100%; margin: 4px; padding: 8px; background-color: #007CC3; color: #FFF; border-radius: 4px; }
 h1 { margin: 0 0 16px 0; font-size: 46px; line-height: 32px; }
 h1>img { float: right; width: 39px; height: 39px; vertical-align: top; border: 1px solid #FFF; border-radius: 8px; box-shadow: 0 0 4px #FFF; }
 
 label.pwd { display: inline-block; margin: 0 0 12px 0; }
-label>span { display: inline-block; width: 150px; vertical-align: top; }
-label>input { width: 360px; border: 0 none; border-radius: 4px; padding: 0 6px; }
-label>textarea {  width: 360px; border: 0 none; height: 160px; }
-label.pwd>input { width: 575px; }
-label.pwd+b { padding: 0 0 0 8px; cursor: pointer; }
+label>span { display: inline-block; width: 180px; vertical-align: top; }
+label>input,label>textarea,label>progress { width: 340px; }
+label>textarea { border: 0 none; height: 150px; }
+label.pwd>input { width: 545px; }
+label+b { padding: 0 0 0 8px; cursor: pointer; vertical-align: top; }
+label+b:hover { text-shadow: 0 0 4px #FFF; }
 
 main>div { position: absolute; top: 102px; left: 4px; width: 772px; height: 474px; }
 div>input[type="radio"] { display: none; }
-div>input[type="radio"]+label { display: block; width: 244px; padding-left: 8px; cursor: pointer; }
+div>input[type="radio"]+label { display: block; width: 200px; padding-left: 8px; cursor: pointer; }
 div>input[type="radio"]:disabled+label { color: #7FBDE1; cursor: default; }
 div>input[type="radio"]:checked+label { background-color: #FFF; color: #007CC3; }
-div>input[type="radio"]~div { position: absolute; top: 0; left: 244px; right: 0; bottom: 0; border: 1px solid #FFF; display: none; padding: 8px; border-bottom-right-radius: 2px }
+div>input[type="radio"]~div { position: absolute; top: 0; left: 200px; right: 0; bottom: 0; border: 1px solid #FFF; display: none; padding: 8px; border-bottom-right-radius: 2px }
 div>input[type="radio"]:checked~div { display: block; }
 </style>
 </head>
@@ -39,28 +43,48 @@ div>input[type="radio"]:checked~div { display: block; }
 <h1><img src="../icons/256.png"/>SQRL</h1>
 <label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><b title="Show Password">👁</b>
 <div>
-<div><input type="radio" name="tab" value="1" id="tab1" checked/><label for="tab1">Create Identity</label><div>
-	<label><span></span><button>Generate new Identity</button></label><br/>
-	<label><span>Identity</span><textarea readonly>KbEx Gvz6 bECA Zrq3 HSxg
+<div><input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label><div>
+	<label><span></span><button>Generate new Identity (randomize)</button></label><br/>
+	<label><span>Identity</span><textarea name="identity" readonly>KbEx Gvz6 bECA Zrq3 HSxg
 n2cp idwN UnGj eyM7 w7qK
 mgMg rgs3 DBGf PS8E RbUB
 kc2S 62AR mhAL caBj gSZt
 FPVP XDLD QMi9 LcY4 caYY
-J6eR q83</textarea></label><br/>
-	<label><span>Rescue Code</span><input type="text" name="rescuecode" value="1234-5678-9012-3456-7890-1234" readonly/></label><br/>
+J6eR q83</textarea></label><b title="Show Identity">👁</b><br/>
+	<label><span>Rescue Code</span><input type="text" name="rescuecode" value="1234-5678-9012-3456-7890-1234" readonly/></label><b title="Show Rescue Code">👁</b><br/>
 	<label><span></span>Write this code down on paper</label><br/>
 	<br/>
-	<label><span>Name</span><input type="text" name="name"/></label><br/>
+	<label><span>Name</span><input type="text" name="name" placeholder="Name or title for this Identity"/></label><br/>
 	<label><span>Password*</span><input type="password" name="password"/></label><br/>
+	<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
+	<label><span></span><progress value="0"></progress></label><br/>
 	<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode"/></label><br/>
+	<label><span></span><button>Save</button></label><br/>
 </div></div>
-<div><input type="radio" name="tab" value="2" id="tab2"/><label for="tab2">Import Identity</label><div></div></div>
+<div><input type="radio" name="tab" value="2" id="tab2" checked/><label for="tab2">Import Identity</label><div>
+	<label><span>Identity</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83"></textarea></label><br/>
+	<label><span></span><button>Import</button></label><br/>
+</div></div>
 <div><input type="radio" name="tab" value="3" id="tab3" disabled/><label for="tab3">Export Identity</label><div></div></div>
 <div><input type="radio" name="tab" value="4" id="tab4" disabled/><label for="tab4">Rekey Identity</label><div></div></div>
-<div><input type="radio" name="tab" value="5" id="tab5" disabled/><label for="tab5">Clear Identity</label><div>Delete all SQRL Identity Information from Browser Memory</div></div>
-<div><input type="radio" name="tab" value="6" id="tab6"/><label for="tab6">Change Password</label><div>- Enter old Password or Rescue Code (if you forgot your Password)<br/>- Enter new Password</div></div>
-<div><input type="radio" name="tab" value="7" id="tab7"/><label for="tab7">Clear Password</label><div>Delete Password from Browser Memory</div></div>
+<div><input type="radio" name="tab" value="6" id="tab6"/><label for="tab6">Change Password</label><div>
+	<label><span>Old Password</span><input type="password" name="password"/></label><br/>
+	<b>  or</b><br/>
+	<label><span>Rescue Code</span><input type="text" name="rescuecode"/></label><br/>
+	<br/>
+	<label><span>New Password*</span><input type="password" name="password"/></label><br/>
+	<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
+	<label><span></span><progress value="0"></progress></label><br/>
+	<label><span></span><button>Save</button></label><br/>
+</div></div>
+<div><input type="radio" name="tab" value="5" id="tab5"/><label for="tab5">Clear Data</label><div>
+	<label><span>Delete Password from Browser Memory</span><button>Delete Password</button></label><br/>
+	<br/>
+	<label><span>Delete all SQRL Identity Information<br/>from Browser Memory and Disk</span><button>Erase SQRL Identity</button></label>
+</div></div>
 <div><input type="radio" name="tab" value="8" id="tab8"/><label for="tab8">Settings</label><div>-Request only SQRL Login<br/>-Request no SQRL Bypass</div></div>
+<div><input type="radio" name="tab" value="9" id="tab9"/><label for="tab9">Help</label><div>
+</div></div>
 </div>
 </main>
 </body>
