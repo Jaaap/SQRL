@@ -1,6 +1,35 @@
 {
 "use strict";
 
+function base56(i)
+{
+	let bi;
+	if (i instanceof bigInt)
+	{
+		bi = i;
+	}
+	else if (typeof i == "string")
+	{
+		bi = bigInt(i);
+	}
+	else if (typeof i == "number")
+	{
+		if (i > Number.MAX_SAFE_INTEGER)
+			throw "ERROR: please provide integers larger than " + Number.MAX_SAFE_INTEGER + " as either a string or a bigInt";
+		bi = bigInt(i);
+	}
+	let chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+	let result = [];
+	do
+	{
+		let { quotient: q, remainder: r } = bi.divmod(56);
+		result.unshift(chars[r]);
+		bi = q;
+	}
+	while (bi > 0);
+	return result.join('');
+}
+
 function base64url(str)
 {
 	return sodium.to_base64(sodium.from_string(str));
