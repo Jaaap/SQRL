@@ -1,6 +1,7 @@
 {
 "use strict";
 
+//uses https://raw.githubusercontent.com/peterolson/BigInteger.js/master/BigInteger.js
 function base56(i)
 {
 	let bi;
@@ -15,8 +16,12 @@ function base56(i)
 	else if (typeof i == "number")
 	{
 		if (i > Number.MAX_SAFE_INTEGER)
-			throw "ERROR: please provide integers larger than " + Number.MAX_SAFE_INTEGER + " as either a string or a bigInt";
+			throw 'base56: ERROR. Argument 1 "i" larger than ' + Number.MAX_SAFE_INTEGER + ' should be represented as String or BigInt';
 		bi = bigInt(i);
+	}
+	else
+	{
+		throw 'base56: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number';
 	}
 	let chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
 	let result = [];
@@ -85,10 +90,10 @@ function getPostData(href)
 			return ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&');
 		}
 		else
-			throw('getPostData: argument 1 "href" should be a string containing a valid URL with hostname"');
+			throw 'getPostData: ERROR. Argument 1 "href" should be a string containing a valid URL with hostname';
 	}
 	else
-		throw('getPostData: argument 1 "href" should be a string starting with "sqrl://"');
+		throw 'getPostData: ERROR. Argument 1 "href" should be a string starting with "sqrl://"';
 }
 
 

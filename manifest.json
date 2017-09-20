@@ -20,8 +20,6 @@
 			"run_at": "document_end"
 		}
 	],
-	"permissions": [
-	],
 	"browser_action": {
 		"browser_style": true,
 		"default_icon": "icons/256.png",
