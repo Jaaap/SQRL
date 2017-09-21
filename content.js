@@ -6,7 +6,7 @@ function base64url_decode(data)
 	let b64u = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";   // base64url dictionary
 	let dst = "";
 
-	for (var i = 0; i < data.length - 3; i += 4)
+	for (let i = 0; i < data.length - 3; i += 4)
 	{
 		let a = b64u.indexOf(data.charAt(i+0));
 		let b = b64u.indexOf(data.charAt(i+1));
@@ -24,7 +24,7 @@ function base64url_decode(data)
 
 function ajax(url, postData, callback)
 {
-	var req = new XMLHttpRequest();
+	let req = new XMLHttpRequest();
 	req.addEventListener("load", evt => {
 		callback(req.responseText);
 	});
@@ -57,7 +57,7 @@ function onAjaxCallback(responseText)
 function onAnchorClick(evt)
 {
 	evt.preventDefault();
-	var anchor = evt.target;
+	let anchor = evt.target;
 	while (anchor && anchor.tagName != "A")
 		anchor = anchor.parentNode;
 	//TODO: check meta/ctrl/middleclick?
