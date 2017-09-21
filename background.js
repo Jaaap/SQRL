@@ -62,7 +62,7 @@ function getPostData(href)
 	if (typeof href == "string" && href.startsWith("sqrl://"))
 	{
 		let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
-		if (hurl != null && hurl.hostname != null && isValidHostname(hurl.hostname))
+		if (hurl != null && isValidHostname(hurl.hostname))
 		{
 			//let masterKey = sodium.from_hex('F33CCDFAFED8DFD2A2BE0A5B84D435B0641D52BB6BF4D7E3067B12CA4DDB0B32');
 			//FIXME: do the keygen only on "Create Identity" and store it in browser.storage.local
