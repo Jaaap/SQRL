@@ -1,44 +1,5 @@
 {
 "use strict";
-
-//uses https://raw.githubusercontent.com/peterolson/BigInteger.js/master/BigInteger.js
-function base56(i)
-{
-	let bi;
-	if (i instanceof bigInt)
-	{
-		bi = i;
-	}
-	else if (typeof i == "string")
-	{
-		bi = bigInt(i);
-	}
-	else if (typeof i == "number")
-	{
-		if (i > Number.MAX_SAFE_INTEGER)
-			throw 'base56: ERROR. Argument 1 "i" larger than ' + Number.MAX_SAFE_INTEGER + ' should be represented as String or BigInt';
-		bi = bigInt(i);
-	}
-	else
-	{
-		throw 'base56: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number';
-	}
-	let chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
-	let result = [];
-	do
-	{
-		let { quotient: q, remainder: r } = bi.divmod(56);
-		result.unshift(chars[r]);
-		bi = q;
-	}
-	while (bi > 0);
-	return result.join('');
-}
-
-function base64url(str)
-{
-	return sodium.to_base64(sodium.from_string(str));
-}
 function isValidHostname(hn)
 {
 	//FIXME: it is assumed that the hostname is punycode encoded - test and/or fix this

@@ -27,7 +27,7 @@
 		"default_popup": "__MSG_popup__"
 	},
 	"background": {
-		"scripts": ["BigInteger.js","sodium-asmjs.js","background.js"],
+		"scripts": ["BigInteger.js","utils.js","sodium-asmjs.js","background.js"],
 		"persistent": false
 	}
 }
