@@ -69,23 +69,9 @@ function onAnchorClick(evt)
 		});
 	}
 }
-function init()
-{
-	//assume DOMLoaded
-	[].forEach.call(document.querySelectorAll('a[href^="sqrl://"]'), anchor => {
-		anchor.addEventListener("click", onAnchorClick, false);
-	});
-}
-init();
-/*
-chrome.runtime.onMessage.addListener(function (message, sender, sendResponse)
-{
-	if (message.type === 'fillLoginForm')
-	{
-		return sendResponse(true);
-	}
+
+//assume DOMLoaded
+[].forEach.call(document.querySelectorAll('a[href^="sqrl://"]'), anchor => {
+	anchor.addEventListener("click", onAnchorClick, false);
 });
-
-
-*/
 }
