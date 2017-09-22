@@ -46,3 +46,19 @@ function base56decode(s)
 	}
 	return result;
 }
+function isValidHostname(hn)
+{
+	//FIXME: it is assumed that the hostname is punycode encoded - test and/or fix this
+	/*
+	Hostnames are composed of series of labels concatenated with dots, as are all domain names.
+	For example, "en.wikipedia.org" is a hostname. Each label must be between 1 and 63 characters long, and the entire hostname has a maximum of 255 characters.
+	RFCs mandate that a hostname's labels may contain only the ASCII letters 'a' through 'z' (case-insensitive), the digits '0' through '9', and the hyphen. Hostname labels cannot begin or end with a hyphen. No other symbols, punctuation characters, or blank spaces are permitted.
+	*/
+	if (hn == null || typeof hn != "string" || hn.length == 0 || hn.length  > 255 || !/^[a-zA-Z0-9\.\-]+$/.test(hn))
+		return false;
+	let splt = hn.split(".");
+	for (let lbl of splt)
+		if (lbl.length < 1 || lbl.length > 63 || lbl.startsWith('-') || lbl.endsWith('-'))
+			return false;
+	return true;
+}
