@@ -6,13 +6,9 @@ function base56encode(i)
 {
 	let bi;
 	if (i instanceof bigInt)
-	{
 		bi = i;
-	}
 	else if (typeof i == "string")
-	{
 		bi = bigInt(i);
-	}
 	else if (typeof i == "number")
 	{
 		if (i > Number.MAX_SAFE_INTEGER)
@@ -20,9 +16,9 @@ function base56encode(i)
 		bi = bigInt(i);
 	}
 	else
-	{
 		throw 'base56encode: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number';
-	}
+	if (bi.lesser(0))
+		throw 'base56encode: ERROR. Argument 1 "i" should be positive';
 	let result = [];
 	do
 	{
