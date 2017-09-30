@@ -1,6 +1,53 @@
 "use strict";
 const base56chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
 
+function memzero(e)
+{
+	if (!(e instanceof Uint8Array))
+		throw new TypeError("Only Uint8Array instances can be wiped");
+	for (let t=0,r=e.length;t<r;t++)
+		e[t]=0
+}
+function str2ab(str) //string to arraybuffer (Uint8Array)
+{
+	let ute = new TextEncoder("utf-8");
+	return ute.encode(str);
+}
+function ab2hex(ab) //arraybuffer (Uint8Array) to hex
+{
+	let result = [];
+	for (let i of ab)
+	{
+		result.push(('00'+i.toString(16)).slice(-2));
+	}
+	return result.join('');
+}
+function ar2hex(ar) //array of integers to hex
+{
+	return ar.map(i => ('00'+i.toString(16)).slice(-2)).join('');
+}
+function ui8aXOR(a, b) //beware: result is written back into a
+{
+	for (let i = 0; i < a.length; i++)
+	{
+		a[i] =  a[i] ^ b[i];
+	}
+}
+//uses https://github.com/tonyg/js-scrypt/raw/master/browser/scrypt.js
+function enscrypt(scrypt, pwd, salt, iterations)
+{
+	let result = scrypt(pwd, salt, 512, 256, 1, 32);
+	let xorresult = new Uint8Array(result);
+	for (let i = 1; i < iterations; i++)
+	{
+		result = scrypt(pwd, result, 512, 256, 1, 32);
+		ui8aXOR(xorresult, result);//result of XOR is written back into xorresult
+	}
+	memzero(result);
+	return xorresult;
+}
+
+
 //uses https://raw.githubusercontent.com/peterolson/BigInteger.js/master/BigInteger.js
 function base56encode(i)
 {
