@@ -70,7 +70,7 @@ function base56encode(i)
 	do
 	{
 		let { quotient: q, remainder: r } = bi.divmod(56);
-		result.unshift(base56chars[r.toJSNumber()]);
+		result.push(base56chars[r.toJSNumber()]);
 		bi = q;
 	}
 	while (bi.greater(0));
@@ -86,7 +86,7 @@ function base56decode(s)
 		return 0;
 	let result = bigInt(0);
 	let factor = bigInt(1);
-	for (let c of s.split('').reverse())
+	for (let c of s.split(''))
 	{
 		result = result.add(factor.multiply(base56chars.indexOf(c)));
 		factor = factor.multiply(56);

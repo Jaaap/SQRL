@@ -2,24 +2,37 @@ var expect = chai.expect;
 chai.config.truncateThreshold = 0;
 //"hostname","port","pathname","search"]
 describe("utils", function() {
+	describe("memzero", function() {
+		it("", function() {
+			let ui8a = new Uint8Array(0);
+			memzero(ui8a);
+			expect(ui8a).to.deep.equal(new Uint8Array(0));
+			ui8a = new Uint8Array(32);
+			memzero(ui8a);
+			expect(ui8a).to.deep.equal(new Uint8Array(32));
+			ui8a = new Uint8Array([1,255,0,55]);
+			memzero(ui8a);
+			expect(ui8a).to.deep.equal(new Uint8Array(4));
+		});
+	});
 	describe("base56", function() {
 		it("encode", function() {
 			expect(function(){ base56encode(-1); }).to.throw('base56encode: ERROR. Argument 1 "i" should be positive');
 			expect(base56encode(0)).to.equal("2");
 			expect(base56encode(1)).to.equal("3");
 			expect(base56encode(55)).to.equal("z");
-			expect(base56encode(56)).to.equal("32");
-			expect(base56encode("56")).to.equal("32");
+			expect(base56encode(56)).to.equal("23");
+			expect(base56encode("56")).to.equal("23");
 			expect(base56encode("00")).to.equal("2");
-			expect(base56encode(Number.MAX_SAFE_INTEGER)).to.equal("3f9ExbxAeZ");
-			expect(base56encode(bigInt(Number.MAX_SAFE_INTEGER))).to.equal("3f9ExbxAeZ");
+			expect(base56encode(Number.MAX_SAFE_INTEGER)).to.equal("ZeAxbxE9f3");
+			expect(base56encode(bigInt(Number.MAX_SAFE_INTEGER))).to.equal("ZeAxbxE9f3");
 		});
 		it("decode", function() {
 			expect(base56decode("2")).to.deep.equal(bigInt(0));
 			expect(base56decode("3")).to.deep.equal(bigInt(1));
 			expect(base56decode("z")).to.deep.equal(bigInt(55));
-			expect(base56decode("32")).to.deep.equal(bigInt(56));
-			expect(base56decode("3f9ExbxAeZ")).to.deep.equal(bigInt(Number.MAX_SAFE_INTEGER));
+			expect(base56decode("23")).to.deep.equal(bigInt(56));
+			expect(base56decode("ZeAxbxE9f3")).to.deep.equal(bigInt(Number.MAX_SAFE_INTEGER));
 		});
 		it("transcode", function() {
 			for (let i = 0; i < 10000; i++)
