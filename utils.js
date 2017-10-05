@@ -13,6 +13,22 @@ function str2ab(str) //string to arraybuffer (Uint8Array)
 	let ute = new TextEncoder("utf-8");
 	return ute.encode(str);
 }
+function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.MAX_SAFE_INTEGER or ab.length == 6
+{
+	if (!(ab instanceof Uint8Array))
+		throw new TypeError("First argument \"ab\" should be a  Uint8Array");
+	if (ab.length > 6)
+		throw new TypeError("Max length of Uint8Array is 6");
+	let result = 0;
+	let fact = 1;
+	for (let i of ab)
+	{
+		result += fact * i;
+		fact *= 256;
+	}
+	fact = 0; //cleanup
+	return result;
+}
 function ab2hex(ab) //arraybuffer (Uint8Array) to hex
 {
 	let result = [];
@@ -48,32 +64,33 @@ function enscrypt(scrypt, pwd, salt, iterations)
 }
 
 
-//uses https://raw.githubusercontent.com/peterolson/BigInteger.js/master/BigInteger.js
+//uses BigNum, https://github.com/indutny/bn.js/
 function base56encode(i)
 {
 	let bi;
-	if (i instanceof bigInt)
+	if (i instanceof BN)
 		bi = i;
 	else if (typeof i == "string")
-		bi = bigInt(i);
+		bi = new BN(i);
 	else if (typeof i == "number")
 	{
 		if (i > Number.MAX_SAFE_INTEGER)
 			throw 'base56encode: ERROR. Argument 1 "i" larger than ' + Number.MAX_SAFE_INTEGER + ' should be represented as String or BigInt';
-		bi = bigInt(i);
+		bi = new BN(i);
 	}
 	else
 		throw 'base56encode: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number';
-	if (bi.lesser(0))
+	if (bi.isNeg())
 		throw 'base56encode: ERROR. Argument 1 "i" should be positive';
 	let result = [];
 	do
 	{
-		let { quotient: q, remainder: r } = bi.divmod(56);
-		result.push(base56chars[r.toJSNumber()]);
+		let r = bi.modn(56);
+		let q = bi.divn(56);
+		result.push(base56chars[r]);
 		bi = q;
 	}
-	while (bi.greater(0));
+	while (bi.gtn(0));
 	return result.join('');
 }
 function base56decode(s)
@@ -84,12 +101,12 @@ function base56decode(s)
 		throw 'base56decode: ERROR. Argument 1 "s" can only contain valid base56 characters [23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]';
 	if (s == null || s == "")
 		return 0;
-	let result = bigInt(0);
-	let factor = bigInt(1);
+	let result = new BN(0);
+	let factor = new BN(1);
 	for (let c of s.split(''))
 	{
-		result = result.add(factor.multiply(base56chars.indexOf(c)));
-		factor = factor.multiply(56);
+		result.iadd(factor.muln(base56chars.indexOf(c)));
+		factor.imuln(56);
 	}
 	return result;
 }

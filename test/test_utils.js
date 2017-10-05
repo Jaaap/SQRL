@@ -25,21 +25,21 @@ describe("utils", function() {
 			expect(base56encode("56")).to.equal("23");
 			expect(base56encode("00")).to.equal("2");
 			expect(base56encode(Number.MAX_SAFE_INTEGER)).to.equal("ZeAxbxE9f3");
-			expect(base56encode(bigInt(Number.MAX_SAFE_INTEGER))).to.equal("ZeAxbxE9f3");
+			expect(base56encode(new BN(Number.MAX_SAFE_INTEGER))).to.equal("ZeAxbxE9f3");
 		});
 		it("decode", function() {
-			expect(base56decode("2")).to.deep.equal(bigInt(0));
-			expect(base56decode("3")).to.deep.equal(bigInt(1));
-			expect(base56decode("z")).to.deep.equal(bigInt(55));
-			expect(base56decode("23")).to.deep.equal(bigInt(56));
-			expect(base56decode("ZeAxbxE9f3")).to.deep.equal(bigInt(Number.MAX_SAFE_INTEGER));
+			expect(base56decode("2")).to.deep.equal(new BN(0));
+			expect(base56decode("3")).to.deep.equal(new BN(1));
+			expect(base56decode("z")).to.deep.equal(new BN(55));
+			expect(base56decode("23")).to.deep.equal(new BN(56));
+			expect(base56decode("ZeAxbxE9f3")).to.deep.equal(new BN(Number.MAX_SAFE_INTEGER));
 		});
 		it("transcode", function() {
 			for (let i = 0; i < 10000; i++)
 			{
-				expect(base56decode(base56encode(i)).toJSNumber()).to.equal(i);
+				expect(base56decode(base56encode(i)).toNumber()).to.equal(i);
 				let squared = i * i; //don't go over Number.MAX_SAFE_INTEGER!
-				expect(base56decode(base56encode(squared)).toJSNumber()).to.equal(squared);
+				expect(base56decode(base56encode(squared)).toNumber()).to.equal(squared);
 			}
 		});
 	});
