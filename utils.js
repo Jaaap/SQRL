@@ -4,7 +4,7 @@ const base56chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
 function memzero(e)
 {
 	if (!(e instanceof Uint8Array))
-		throw new TypeError("Only Uint8Array instances can be wiped");
+		throw new Error("Only Uint8Array instances can be wiped");
 	for (let t=0,r=e.length;t<r;t++)
 		e[t]=0
 }
@@ -16,9 +16,9 @@ function str2ab(str) //string to arraybuffer (Uint8Array)
 function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.MAX_SAFE_INTEGER or ab.length == 6
 {
 	if (!(ab instanceof Uint8Array))
-		throw new TypeError("First argument \"ab\" should be a  Uint8Array");
+		throw new Error("First argument \"ab\" should be a  Uint8Array");
 	if (ab.length > 6)
-		throw new TypeError("Max length of Uint8Array is 6");
+		throw new Error("Max length of Uint8Array is 6");
 	let result = 0;
 	let fact = 1;
 	for (let i of ab)
@@ -62,6 +62,31 @@ function enscrypt(scrypt, pwd, salt, iterations)
 	memzero(result);
 	return xorresult;
 }
+function aesGcmDecrypt(data, keyStr, iv)
+{
+	if (typeof keyStr == "string" && keyStr.length > 0)
+	{
+		if (iv.constructor === Uint8Array && iv.length === 16)
+		{
+			if (data.constructor === Uint8Array && data.length > 0)
+			{
+				return importKey(keyStr, "decrypt").then(key => {
+					return crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, data).then(decrypted => {
+						let decoder = new TextDecoder("utf-8");
+						return decoder.decode(new Uint8Array(decrypted));
+					});
+				});
+			}
+			else
+				throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
+		}
+		else
+			throw new Error('Argument 3 "iv" should be a Uint8Array of length 16');
+	}
+	else
+		throw new Error('Argument 2 "key" should be a non-empty String');
+}
+
 
 
 //uses BigNum, https://github.com/indutny/bn.js/
@@ -75,13 +100,13 @@ function base56encode(i)
 	else if (typeof i == "number")
 	{
 		if (i > Number.MAX_SAFE_INTEGER)
-			throw 'base56encode: ERROR. Argument 1 "i" larger than ' + Number.MAX_SAFE_INTEGER + ' should be represented as String or BigInt';
+			throw new Error('base56encode: ERROR. Argument 1 "i" larger than ' + Number.MAX_SAFE_INTEGER + ' should be represented as String or BigInt');
 		bi = new BN(i);
 	}
 	else
-		throw 'base56encode: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number';
+		throw new Error('base56encode: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number');
 	if (bi.isNeg())
-		throw 'base56encode: ERROR. Argument 1 "i" should be positive';
+		throw new Error('base56encode: ERROR. Argument 1 "i" should be positive');
 	let result = [];
 	do
 	{
@@ -96,9 +121,9 @@ function base56encode(i)
 function base56decode(s)
 {
 	if (typeof s != "string")
-		throw 'base56decode: ERROR. Argument 1 "s" should be a String';
+		throw new Error('base56decode: ERROR. Argument 1 "s" should be a String');
 	if (/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]/.test(s))
-		throw 'base56decode: ERROR. Argument 1 "s" can only contain valid base56 characters [23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]';
+		throw new Error('base56decode: ERROR. Argument 1 "s" can only contain valid base56 characters [23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]');
 	if (s == null || s == "")
 		return 0;
 	let result = new BN(0);
