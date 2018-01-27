@@ -62,30 +62,53 @@ function enscrypt(scrypt, pwd, salt, iterations)
 	memzero(result);
 	return xorresult;
 }
-function aesGcmDecrypt(data, keyStr, iv)
+
+function aesGcmDecrypt(data, additionalData, password, iv)
 {
-	if (typeof keyStr == "string" && keyStr.length > 0)
+	if (data.constructor === Uint8Array && data.length > 0)
 	{
-		if (iv.constructor === Uint8Array && iv.length === 16)
+		if (additionalData.constructor === Uint8Array && additionalData.length > 0)
 		{
-			if (data.constructor === Uint8Array && data.length > 0)
+			if (password.constructor === Uint8Array && password.length === 32)
 			{
-				return importKey(keyStr, "decrypt").then(key => {
-					return crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, data).then(decrypted => {
-						let decoder = new TextDecoder("utf-8");
-						return decoder.decode(new Uint8Array(decrypted));
-					});
-				});
+				if (iv.constructor === Uint8Array && iv.length === 12)
+				{
+					return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["decrypt"]).then(key =>
+						crypto.subtle.decrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData }, key, data)
+					);
+				}
+				else
+					throw new Error('Argument 4 "iv" should be a Uint8Array of length 16');
 			}
 			else
-				throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
+				throw new Error('Argument 3 "password" should be a Uint8Array of length 32');
 		}
 		else
-			throw new Error('Argument 3 "iv" should be a Uint8Array of length 16');
+			throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
 	}
 	else
-		throw new Error('Argument 2 "key" should be a non-empty String');
+		throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
 }
+function parseBlockType2(data)
+{
+	if (data.constructor === Uint8Array && data.length === 73)
+	{
+		let blockType = ab2int(data.slice(2, 4));
+		if (blockType == 2)
+			return {
+				"enscryptSalt": data.slice(4, 20),
+				"enscryptLogN": ab2int(data.slice(20, 21)),
+				"enscryptIter": ab2int(data.slice(21, 25)),
+				"dataToDecrypt": data.slice(25, 73),
+				"additionalData": data.slice(0, 25)
+			}
+		else
+			throw new Error('Argument 1 "data" should be a type 2 identity data block');
+	}
+	else
+		throw new Error('Argument 1 "data" should be a Uint8Array of length 73');
+}
+
 
 
 
@@ -127,11 +150,10 @@ function base56decode(s)
 	if (s == null || s == "")
 		return 0;
 	let result = new BN(0);
-	let factor = new BN(1);
-	for (let c of s.split(''))
+	for (let i = s.length-1; i >= 0; i--)
 	{
-		result.iadd(factor.muln(base56chars.indexOf(c)));
-		factor.imuln(56);
+		result.imuln(56);
+		result.iaddn(base56chars.indexOf(s.charAt(i)));
 	}
 	return result;
 }
