@@ -62,6 +62,22 @@ function enscrypt(scrypt, pwd, salt, iterations)
 	memzero(result);
 	return xorresult;
 }
+function enhash(password)
+{
+	if (password.constructor === Uint8Array && password.length === 32)
+	{
+		let a = sodium.crypto_hash_sha256(password);
+		let b = a;
+		for (let i = 0; i < 16; i++)
+		{
+			b = sodium.crypto_hash_sha256(b);
+			ui8aXOR(a, b);//result of XOR is written back into a
+		}
+		return a;
+	}
+	else
+		throw new Error('Argument 1 "password" should be a Uint8Array of length 32');
+}
 
 function aesGcmDecrypt(data, additionalData, password, iv)
 {
