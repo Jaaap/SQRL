@@ -1,6 +1,6 @@
 {
 "use strict";
-function base64url_decode(str)
+function base64url_encode(str)
 {
 	return sodium.to_base64(sodium.from_string(str));
 }
@@ -21,7 +21,7 @@ function getPostData(href)
 			let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = sodium.crypto_sign_seed_keypair(HMAC256Hash);
 			sodium.memzero(HMAC256Hash);
 
-			let client = base64url_decode([
+			let client = base64url_encode([
 				"ver=1",
 				"cmd=ident",
 				"idk=" + sodium.to_base64(SitePublicKey),
@@ -30,7 +30,7 @@ function getPostData(href)
 			].join("\r\n"));
 			sodium.memzero(SitePublicKey);
 
-			let server = base64url_decode(href);
+			let server = base64url_encode(href);
 			let ids = sodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
 			sodium.memzero(SitePrivateKey);
 
