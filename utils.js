@@ -73,6 +73,7 @@ function enhash(password)
 			b = sodium.crypto_hash_sha256(b);
 			ui8aXOR(a, b);//result of XOR is written back into a
 		}
+		memzero(b);
 		return a;
 	}
 	else
