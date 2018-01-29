@@ -3,6 +3,11 @@
 
 function base64url_decode(data)
 {
+	if (data.length % 4 > 0)
+	{
+		//padd width equal signs
+		data = data + new Array(5 - (data.length % 4)).join("=");
+	}
 	let b64u = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";   // base64url dictionary
 	let dst = "";
 
