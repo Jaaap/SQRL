@@ -1,3 +1,4 @@
+//https://github.com/indutny/bn.js/
 (function (module, exports) {
   'use strict';
 

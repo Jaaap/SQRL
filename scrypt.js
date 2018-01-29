@@ -1,3 +1,4 @@
+//https://github.com/tonyg/js-scrypt/
 var scrypt_module_factory = (function (on_ready, optionsOpt) {
   var options = optionsOpt || {};
   var requested_total_memory = options.requested_total_memory || 33554432;
