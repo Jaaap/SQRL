@@ -68,9 +68,10 @@ function onAnchorClick(evt)
 	//TODO: check meta/ctrl/middleclick?
 	if (anchor.tagName == "A")
 	{
-		chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href}, postData => {
-			console.log(postData);
-			ajax(anchor.href.replace(/^sqrl:/, 'https:'), postData, onAjaxCallback);
+		chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href}, result => {
+			console.log(result);
+			if (result.success)
+				ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, onAjaxCallback);
 		});
 	}
 }

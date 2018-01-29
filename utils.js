@@ -3,10 +3,14 @@ const base56chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
 
 function memzero(e)
 {
-	if (!(e instanceof Uint8Array))
-		throw new Error("Only Uint8Array instances can be wiped");
-	for (let t=0,r=e.length;t<r;t++)
-		e[t]=0
+	if (e instanceof Uint8Array)
+		for (let i = 0; i < e.length; i++)
+			e[i] = 0;
+	else if (e instanceof BN)
+		for (let i = 0; i < e.words.length; i++)
+			e.words[i] = 0;
+	else
+		throw new Error("Only Uint8Array and BN instances can be wiped");
 }
 function str2ab(str) //string to arraybuffer (Uint8Array)
 {
@@ -105,6 +109,49 @@ function aesGcmDecrypt(data, additionalData, password, iv)
 	else
 		throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
 }
+
+function TextualIdentityValidationError(rowNr, colNr, msg)
+{
+	this.rowNr = rowNr;
+	this.colNr = colNr;
+	this.msg = msg;
+}
+function validateTextualIdentity(ti)
+{
+	let lines = ti.split(/\r?\n/);
+	let base56invalidsCharsRe = new RegExp(`[^${base56chars}]`);
+	for (let [lIndex, line] of lines.entries())
+	{
+		let blocks = line.split(/ /);
+		if (blocks.length < 5 && lIndex < lines.length - 1)
+			throw new TextualIdentityValidationError(lIndex, null, "A line must contain 5 blocks unless it is the last line");
+		if (blocks.length > 5)
+			throw new TextualIdentityValidationError(lIndex, null, "A line can contain a maximum of 5 blocks");
+		for (let [bIndex, block] of blocks.entries())
+		{
+			if (block.length < 4 && (bIndex < blocks.length - 1 || lIndex < lines.length - 1))
+				throw new TextualIdentityValidationError(lIndex, bIndex, "A block must contain 4 characters unless it is the last block in the last line. ");
+			if (block.length > 4)
+				throw new TextualIdentityValidationError(lIndex, bIndex, "A block can contain a maximum of 4 characters");
+			if (base56invalidsCharsRe.test(block))
+				throw new TextualIdentityValidationError(lIndex, bIndex, "A block can only contain valid base56 characters");
+		}
+		//The final character on each line is a line checksum character formed by taking the (SHA256 mod 56) hashing of the line's previous characters plus the 0-based line number.
+		let lineChars = blocks.join("");
+		let verificationChar = lineChars.slice(-1);
+		let lineCharInts = sodium.from_string(lineChars);
+		lineCharInts[lineCharInts.length - 1] = lIndex;
+		let sha256 = sodium.crypto_hash_sha256(lineCharInts).reverse();
+		let sha256bn = new BN(sha256);
+		memzero(sha256);
+		let verificationInt = sha256bn.modn(56);
+		memzero(sha256bn);
+		if (verificationChar !== base56chars[verificationInt])
+			throw new TextualIdentityValidationError(lIndex, null, "Verification character mismatch");
+	}
+	return true;
+}
+
 function parseBlockType2(data)
 {
 	if (data.constructor === Uint8Array && data.length === 73)

@@ -5,6 +5,7 @@
 <title>SQRL</title>
 <!-- TODO: Remove extension.css stylesheet -->
 <link rel="stylesheet" href="chrome://browser/content/extension.css"/>
+<script src="../jQueryLight.js" defer></script>
 <script src="../popup.js" defer></script>
 <style>
 html,body { margin: 0; }
@@ -22,7 +23,7 @@ h1>img { float: right; width: 39px; height: 39px; vertical-align: top; border: 1
 
 label.pwd { display: inline-block; margin: 0 0 12px 0; }
 label>span { display: inline-block; width: 180px; vertical-align: top; }
-label>input[type="checkbox"]+span { width: 534px; }
+label>input[type="checkbox"]+span { width: 534px; vertical-align: middle; }
 label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress { width: 340px; }
 label>textarea { border: 0 none; height: 150px; }
 label.pwd>input { width: 545px; }
@@ -36,6 +37,9 @@ div>input[type="radio"]:disabled+label { color: #7FBDE1; cursor: default; }
 div>input[type="radio"]:checked+label { background-color: #FFF; color: #007CC3; }
 div>input[type="radio"]~div { position: absolute; top: 0; left: 200px; right: 0; bottom: 0; border: 1px solid #FFF; display: none; padding: 8px; border-bottom-right-radius: 2px }
 div>input[type="radio"]:checked~div { display: block; }
+
+button.success::after { content: " ✅"; }
+button.failure::after { content: " ❌"; }
 </style>
 </head>
 
@@ -45,28 +49,27 @@ div>input[type="radio"]:checked~div { display: block; }
 <label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><b title="Show Password">👁</b>
 <div>
 	<div><input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label><div>
-		<label><span></span><button>Generate new Identity (randomize)</button></label><br/>
-		<label><span>Identity</span><textarea name="identity" readonly>KbEx Gvz6 bECA Zrq3 HSxg
-n2cp idwN UnGj eyM7 w7qK
-mgMg rgs3 DBGf PS8E RbUB
-kc2S 62AR mhAL caBj gSZt
-FPVP XDLD QMi9 LcY4 caYY
-J6eR q83</textarea></label><b title="Show Identity">👁</b><br/>
-		<label><span>Rescue Code</span><input type="text" name="rescuecode" value="1234-5678-9012-3456-7890-1234" readonly/></label><b title="Show Rescue Code">👁</b><br/>
-		<label><span></span>Write this code down on paper</label><br/>
-		<br/>
-		<label><span>Name</span><input type="text" name="name" placeholder="Name or title for this Identity"/></label><br/>
-		<label><span>Password*</span><input type="password" name="password"/></label><br/>
-		<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
-		<label><span></span><progress value="0"></progress></label><br/>
-		<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode"/></label><br/>
-		<label><span></span><button>Save</button></label><br/>
+		<form id="create">
+			<label><span></span><button type="button">Generate new Identity (randomize)</button></label><br/>
+			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><b title="Show Identity">👁</b><br/>
+			<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
+			<label><span></span>Write this code down on paper</label><br/>
+			<br/>
+			<label><span>Name</span><input type="text" name="name" placeholder="Name or title for this Identity"/></label><br/>
+			<label><span>Password*</span><input type="password" name="password"/></label><br/>
+			<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
+			<label><span></span><progress value="0"></progress></label><br/>
+			<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode"/></label><br/>
+			<label><span></span><button>Save</button></label><br/>
+		</form>
 	</div></div>
 
 	<div><input type="radio" name="tab" value="2" id="tab2" checked/><label for="tab2">Import Identity</label><div>
-		<label><span>Identity</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83"></textarea></label><br/>
-		<label><span>Rescue Code</span><input type="text" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){6}"/></label><br/>
-		<label><span></span><button>Import</button></label><br/>
+		<form id="import">
+			<label><span>Identity</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83"></textarea></label><br/>
+			<label><span>Rescue Code</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){6}"/></label><br/>
+			<label><span></span><button>Import</button></label><br/>
+		</form>
 	</div></div>
 
 	<div><input type="radio" name="tab" value="3" id="tab3" disabled/><label for="tab3">Export Identity</label><div>
@@ -76,26 +79,32 @@ J6eR q83</textarea></label><b title="Show Identity">👁</b><br/>
 	</div></div>
 
 	<div><input type="radio" name="tab" value="6" id="tab6"/><label for="tab6">Change Password</label><div>
-		<label><span>Old Password</span><input type="password" name="password"/></label><br/>
-		<b>  or</b><br/>
-		<label><span>Rescue Code</span><input type="text" name="rescuecode"/></label><br/>
-		<br/>
-		<label><span>New Password*</span><input type="password" name="password"/></label><br/>
-		<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
-		<label><span></span><progress value="0"></progress></label><br/>
-		<label><span></span><button>Save</button></label><br/>
+		<form id="changepassword">
+			<label><span>Old Password</span><input type="password" name="password"/></label><br/>
+			<br/>
+			<label><span>New Password*</span><input type="password" name="password"/></label><br/>
+			<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
+			<label><span></span><progress value="0"></progress></label><br/>
+			<label><span></span><button>Save</button></label><br/>
+		</form>
 	</div></div>
 
 	<div><input type="radio" name="tab" value="5" id="tab5"/><label for="tab5">Clear Data</label><div>
-		<label><span>Delete Password from Browser Memory</span><button>Delete Password</button></label><br/>
+		<form id="deletepassword">
+			<label><span>Delete Password from Browser Memory</span><button>Delete Password</button></label><br/>
+		</form>
 		<br/>
-		<label><span>Delete all SQRL Identity Information<br/>from Browser Memory and Disk</span><button>Erase SQRL Identity</button></label>
+		<form id="eraseidentity">
+			<label><span>Delete all SQRL Identity Information<br/>from Browser Memory and Disk</span><button>Erase SQRL Identity</button></label>
+		</form>
 	</div></div>
 
 	<div><input type="radio" name="tab" value="8" id="tab8"/><label for="tab8">Settings</label><div>
-		<label><input type="checkbox" name="reqsqrlloginonly"/><span>Request only SQRL Login</span></label><br/>
-		<label><input type="checkbox" name="reqsqrllnobypass"/><span>Request no SQRL Bypass</span></label><br/>
-		<label><span></span><button>Save</button></label><br/>
+		<form id="settings">
+			<label><input type="checkbox" name="reqsqrlloginonly"/><span>Request only SQRL Login</span></label><br/>
+			<label><input type="checkbox" name="reqsqrllnobypass"/><span>Request no SQRL Bypass</span></label><br/>
+			<label><span></span><button>Save</button></label><br/>
+		</form>
 	</div></div>
 
 	<div><input type="radio" name="tab" value="9" id="tab9"/><label for="tab9">Help</label><div>

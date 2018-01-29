@@ -1,8 +1,55 @@
 {
 "use strict";
 
+function onCreateFormSubmit(evt)
+{
+	evt.preventDefault();
+	console.log(this, evt);
+}
+function onImportFormSubmit(evt)
+{
+	evt.preventDefault();
+	console.log(this, evt);
+	let elems = this.elements;
+	chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value }, result => {
+		console.log("onImportFormSubmit", result);
+		elems[elems.length - 1].className = result.success ? "success" : "failure";
+		if (result.success)
+		{
+			elems.identity.value = "";
+			elems.rescuecode.value = "";
+		}
+	});
+}
+function onChangepasswordFormSubmit(evt)
+{
+	evt.preventDefault();
+	console.log(this, evt);
+}
+function onDeletepasswordFormSubmit(evt)
+{
+	evt.preventDefault();
+	console.log(this, evt);
+}
+function onEraseidentityFormSubmit(evt)
+{
+	evt.preventDefault();
+	console.log(this, evt);
+}
+function onSettingsFormSubmit(evt)
+{
+	evt.preventDefault();
+	console.log(this, evt);
+}
 function init()
 {
+	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
+	$('form#create').submit(onCreateFormSubmit);
+	$('form#import').submit(onImportFormSubmit);
+	$('form#changepassword').submit(onChangepasswordFormSubmit);
+	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
+	$('form#eraseidentity').submit(onEraseidentityFormSubmit);
+	$('form#settings').submit(onSettingsFormSubmit);
 /*
 	if ("chrome" in window)
 	{
