@@ -21,6 +21,14 @@ function onImportFormSubmit(evt)
 		}
 	});
 }
+function onTextualIdentityKeyUp(evt)
+{
+	let ta = evt.target;
+	if (validateTextualIdentity(ta.value))
+	{
+		//TODO: show result
+	}
+}
 function onChangepasswordFormSubmit(evt)
 {
 	evt.preventDefault();
@@ -50,6 +58,7 @@ function init()
 	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
 	$('form#eraseidentity').submit(onEraseidentityFormSubmit);
 	$('form#settings').submit(onSettingsFormSubmit);
+	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 /*
 	if ("chrome" in window)
 	{
