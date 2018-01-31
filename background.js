@@ -53,44 +53,37 @@ window.sodium = { onload: function(sodium) {
 		}
 		function importIdentity(textualIdentity, rescueCode, sendResponse)
 		{
-			try
+			let validationResult = validateTextualIdentity(textualIdentity);
+			if (validationResult.success)
 			{
-				if (validateTextualIdentity(textualIdentity))
+				let identityData = base56decode(textualIdentity.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
+				console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
+				let blockSize = ab2int(identityData.slice(0, 2));
+				let blockType = ab2int(identityData.slice(2, 4));
+				if (blockType == 2)
 				{
-					let identityData = base56decode(textualIdentity.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
-					console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
-					let blockSize = ab2int(identityData.slice(0, 2));
-					let blockType = ab2int(identityData.slice(2, 4));
-					if (blockType == 2)
-					{
-						let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
-						console.log("extractedBlock2", extractedBlock2);
-						console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
-						let enscryptedPwd = enscrypt(scrypt.crypto_scrypt, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter);
-						console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
-						aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
-							let IUK = new Uint8Array(decrypted);
-							console.log("IUK", IUK);
-							IMK = enhash(IUK);
-							//FIXME: encrypt IMK with password
-							chrome.storage.local.set({"IMK": IMK});
-							sendResponse({"success": true});
-						}).catch(err => {
-							sendResponse({"success": false, "errorCode": "ERRII004"});
-						});
-					}
-					else
-						return "ERRII003";
+					let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
+					console.log("extractedBlock2", extractedBlock2);
+					console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
+					let enscryptedPwd = enscrypt(scrypt.crypto_scrypt, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter);
+					console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
+					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
+						let IUK = new Uint8Array(decrypted);
+						console.log("IUK", IUK);
+						IMK = enhash(IUK);
+						//FIXME: encrypt IMK with password
+						chrome.storage.local.set({"IMK": IMK});
+						sendResponse({"success": true});
+					}).catch(err => {
+						sendResponse({"success": false, "errorCode": "ERRII002"});
+					});
 				}
 				else
-					return "ERRII002";
-			}
-			catch (err)
-			{
-				if (err instanceof TextualIdentityValidationError)
 					return "ERRII001";
-				else
-					return "ERRII000";
+			}
+			else
+			{
+				return "ERRII000";
 			}
 		}
 
@@ -106,7 +99,19 @@ window.sodium = { onload: function(sodium) {
 			}
 			else //from popup
 			{
-				if (request.action === "importIdentity")
+				if (request.action === "hasIdentity")
+				{
+					sendResponse(IMK != null);
+				}
+				else if (request.action === "eraseIdentity")
+				{
+					IMK = null;
+					chrome.storage.local.remove("IMK", () => {
+						sendResponse(chrome.runtime.lastError);
+					});
+					return true;
+				}
+				else if (request.action === "importIdentity")
 				{
 					let errorCode = importIdentity(request.textualIdentity, request.rescueCode, sendResponse);
 					if (errorCode)
@@ -119,7 +124,6 @@ window.sodium = { onload: function(sodium) {
 
 		// init
 		chrome.storage.local.get("IMK", function(result){
-			console.log("background.js", "chrome.storage.local.get IUK", result);
 			if (result.IMK)
 				IMK = result.IMK;
 		});
