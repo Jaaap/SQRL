@@ -1,9 +1,5 @@
 {
 "use strict";
-/*
-chrome.storage.local.get("IMK", function(result){ result.IMK; })
-chrome.storage.local.set({"IMK": IMK});
-*/
 
 window.sodium = { onload: function(sodium) {
 	scrypt_module_factory(scrypt => {
