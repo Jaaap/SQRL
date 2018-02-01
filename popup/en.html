@@ -13,33 +13,36 @@
 <style>
 :root { --sqrl-blue: #007CC3; --grey: #7FBDE1; }
 html,body { margin: 0; }
-body,label,input { font-size: 20px; }
-button { font-size: 18px; }
-textarea { font-size: 22px; }
-input[type="text"],input[type="password"] { border: 0 none; border-radius: 4px; padding: 0 6px; font-family: monospace; font-size: 18px; line-height: 26px; }
+body,label,input { font-size: 17px; }
+button { font-size: 17px; }
+textarea { font-size: 17px; }
+input[type="text"],input[type="password"] { border: 0 none; border-radius: 4px; padding: 0 6px; font-family: monospace; font-size: 15px; line-height: 23px; }
 ::-webkit-input-placeholder { color: #CCC; }
 ::-moz-placeholder { color: #CCC; }
+:not(output):-moz-ui-invalid { box-shadow: inset 0 0 1.5px 1px red, 0 0 1.5px 1px red; }
 
-body { font-family: Verdana, Helvetica; height: 584px; width: 784px; }
+/* Fx mac: 784w x 584h */
+body { font-family: Verdana, Helvetica; width: 680px; height: 584px; }
 main { height: 100%; margin: 4px; padding: 8px; background-color: var(--sqrl-blue); color: #FFF; border-radius: 4px; }
 h1 { margin: 0 0 16px 0; font-size: 46px; line-height: 32px; }
 h1>img { float: right; width: 39px; height: 39px; vertical-align: top; border: 1px solid #FFF; border-radius: 8px; box-shadow: 0 0 4px #FFF; }
 
 label.pwd { display: inline-block; margin: 0 0 12px 0; }
-label>span { display: inline-block; width: 180px; vertical-align: top; }
-label>input[type="checkbox"]+span { width: 534px; vertical-align: middle; }
-label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress { width: 340px; }
+label>span { display: inline-block; width: 150px; vertical-align: top; }
+label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
+label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress { width: 270px; }
 label>textarea { border: 0 none; height: 150px; line-height: 22px; }
 #import label>textarea { height: 300px; }
-label.pwd>input { width: 545px; }
+label.pwd>input { width: 440px; }
 label+b { padding: 0 0 0 8px; cursor: pointer; vertical-align: top; display: inline-block; width: 28px; line-height: 22px; }
 label+b:hover { text-shadow: 0 0 4px #FFF; }
 input.confirm[type="checkbox"]+button { display: none; }
 input.confirm[type="checkbox"]:checked+button { display: inline-block; color: red; font-weight: bold; }
 
-main>div { position: absolute; top: 102px; left: 4px; width: 772px; height: 474px; }
+main>div { position: absolute; top: 102px; left: 4px; width: 668px; height: 474px; }
 div>input[type="radio"] { display: none; }
 div>input[type="radio"]+label { display: block; width: 200px; padding-left: 8px; cursor: pointer; }
+div>input[type="radio"]:not(:disabled)+label:hover { background-color: var(--grey); }
 div>input[type="radio"]:disabled+label { color: var(--grey); cursor: default; }
 div>input[type="radio"]:checked+label { background-color: #FFF; color: var(--sqrl-blue); }
 div>input[type="radio"]~div { position: absolute; top: 0; left: 200px; right: 0; bottom: 0; border: 1px solid #FFF; display: none; padding: 8px; border-bottom-right-radius: 2px }
@@ -54,7 +57,7 @@ button.failure::after { content: " ❌"; }
 <h1><img src="../icons/256.png"/>SQRL</h1>
 <label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><b title="Show Password">👁</b>
 <div>
-	<div><input type="radio" name="tab" value="1" id="tab1" disabled/><label for="tab1">Create Identity</label><div>
+	<div><input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label><div>
 		<form id="create">
 			<label><span></span><button type="button">Generate new Identity (randomize)</button></label><br/>
 			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><b title="Show Identity">👁</b><br/>
@@ -70,7 +73,7 @@ button.failure::after { content: " ❌"; }
 		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="2" id="tab2" disabled/><label for="tab2">Import Identity</label><div>
+	<div><input type="radio" name="tab" value="2" id="tab2"/><label for="tab2">Import Identity</label><div>
 		<form id="import">
 			<label><span>Identity</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83"></textarea></label><b></b><br/>
 			<label><span>Rescue Code</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-){5}\d{4}"/></label><br/>
@@ -78,10 +81,10 @@ button.failure::after { content: " ❌"; }
 		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="3" id="tab3" disabled/><label for="tab3">Export Identity</label><div>
+	<div><input type="radio" name="tab" value="3" id="tab3"/><label for="tab3">Export Identity</label><div>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="4" id="tab4" disabled/><label for="tab4">Change Password</label><div>
+	<div><input type="radio" name="tab" value="4" id="tab4"/><label for="tab4">Change Password</label><div>
 		<form id="changepassword">
 			<label><span>Old Password</span><input type="password" name="password"/></label><br/>
 			<br/>
@@ -92,7 +95,7 @@ button.failure::after { content: " ❌"; }
 		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="5" id="tab5" disabled/><label for="tab5">Clear Data</label><div>
+	<div><input type="radio" name="tab" value="5" id="tab5"/><label for="tab5">Clear Data</label><div>
 		<form id="deletepassword">
 			<label><span>Delete Password from Browser Memory</span><button>Delete Password</button></label><br/>
 		</form>
@@ -104,7 +107,7 @@ button.failure::after { content: " ❌"; }
 		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="6" id="tab6" disabled/><label for="tab6">Settings</label><div>
+	<div><input type="radio" name="tab" value="6" id="tab6"/><label for="tab6">Settings</label><div>
 		<form id="settings">
 			<label><input type="checkbox" name="reqsqrlloginonly"/><span>Request only SQRL Login</span></label><br/>
 			<label><input type="checkbox" name="reqsqrllnobypass"/><span>Request no SQRL Bypass</span></label><br/>
