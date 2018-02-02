@@ -76,6 +76,7 @@ function init()
 		chrome.runtime.sendMessage({'action': 'hasIdentity' }, hasIdentity => {
 			setTabsEnabling(hasIdentity);
 		});
+		$('#version').text(chrome.runtime.getManifest().version);
 	}
 }
 

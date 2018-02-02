@@ -16,6 +16,7 @@ html,body { margin: 0; }
 body,label,input { font-size: 17px; }
 button { font-size: 17px; }
 textarea { font-size: 17px; }
+.notyet { opacity: 0.3; }
 input[type="text"],input[type="password"] { border: 0 none; border-radius: 4px; padding: 0 6px; font-family: monospace; font-size: 15px; line-height: 23px; }
 ::-webkit-input-placeholder { color: #CCC; }
 ::-moz-placeholder { color: #CCC; }
@@ -55,10 +56,10 @@ button.failure::after { content: " ❌"; }
 <body>
 <main>
 <h1><img src="../icons/256.png"/>SQRL</h1>
-<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><b title="Show Password">👁</b>
+<label class="pwd notyet"><span>Password</span><input type="password" name="password" autofocus/></label><b title="Show Password">👁</b>
 <div>
 	<div><input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label><div>
-		<form id="create">
+		<form id="create" class="notyet">
 			<label><span></span><button type="button">Generate new Identity (randomize)</button></label><br/>
 			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><b title="Show Identity">👁</b><br/>
 			<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
@@ -85,7 +86,7 @@ button.failure::after { content: " ❌"; }
 	</div></div>
 
 	<div><input type="radio" name="tab" value="4" id="tab4"/><label for="tab4">Change Password</label><div>
-		<form id="changepassword">
+		<form id="changepassword" class="notyet">
 			<label><span>Old Password</span><input type="password" name="password"/></label><br/>
 			<br/>
 			<label><span>New Password*</span><input type="password" name="password"/></label><br/>
@@ -96,7 +97,7 @@ button.failure::after { content: " ❌"; }
 	</div></div>
 
 	<div><input type="radio" name="tab" value="5" id="tab5"/><label for="tab5">Clear Data</label><div>
-		<form id="deletepassword">
+		<form id="deletepassword" class="notyet">
 			<label><span>Delete Password from Browser Memory</span><button>Delete Password</button></label><br/>
 		</form>
 		<br/>
@@ -108,7 +109,7 @@ button.failure::after { content: " ❌"; }
 	</div></div>
 
 	<div><input type="radio" name="tab" value="6" id="tab6"/><label for="tab6">Settings</label><div>
-		<form id="settings">
+		<form id="settings" class="notyet">
 			<label><input type="checkbox" name="reqsqrlloginonly"/><span>Request only SQRL Login</span></label><br/>
 			<label><input type="checkbox" name="reqsqrllnobypass"/><span>Request no SQRL Bypass</span></label><br/>
 			<label><span></span><button>Save</button></label><br/>
@@ -116,6 +117,8 @@ button.failure::after { content: " ❌"; }
 	</div></div>
 
 	<div><input type="radio" name="tab" value="7" id="tab7"/><label for="tab7">Help</label><div>
+		<label><span>Version</span><b id="version">0.0.0</b></label><br/>
+		<label><span>More info</span><a href="https://grc.com/sqrl/sqrl.htm" target="_blank">grc.com/sqrl</a></label><br/>
 	</div></div>
 </div>
 </main>
