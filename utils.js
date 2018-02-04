@@ -137,7 +137,7 @@ function validateTextualIdentity(ti)
 				return { "success": false, "lineNr": lIndex, "blockNr": bIndex, "message": `Invalid character "${b56match[1]}" on line ${lIndex + 1}.\nA block can only contain valid base56 characters.` };
 		}
 		//The final character on each line is a line checksum character formed by taking the (SHA256 mod 56) hashing of the line's previous characters plus the 0-based line number.
-		if (lIndex < lines.length - 1 || line.length > 23 || (lIndex > 4 && line.length > 7)) //FIXME: this only works for type2 data, user can enter type2 + type3 data.
+		if (line.length == 24 || (lIndex == 5 && line.length == 8)) //FIXME: this only works for type2 data, user can enter type2 + type3 data.
 		{
 			let lineChars = blocks.join("");
 			let verificationChar = lineChars.slice(-1);
@@ -152,7 +152,7 @@ function validateTextualIdentity(ti)
 				return { "success": false, "lineNr": lIndex, "message": `Verification character mismatch on line ${lIndex + 1}.\nOne or more of the characters on this line is wrong.` };
 		}
 	}
-	return { "success": true, "lineNr": lines.length - 1 };
+	return { "success": true, "lineNr": lines.length };
 }
 
 function parseBlockType2(data)

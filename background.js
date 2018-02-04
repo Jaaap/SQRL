@@ -49,7 +49,9 @@ window.sodium = { onload: function(sodium) {
 		}
 		function importIdentity(textualIdentity, rescueCode, sendResponse)
 		{
-			let validationResult = validateTextualIdentity(textualIdentity);
+			//FIXME: check that length of textual identity corresponds to a valid type2 or type2+type3 block
+			// ... the following pre-calculated fixed character counts may be used: 107, 185, 232, 278, 325 for the five possible textual identity lengths (spaces and newlines removed).
+			let validationResult = validateTextualIdentity(textualIdentity); //will also return success == true if the textual identity is only partly entered!
 			if (validationResult.success)
 			{
 				let identityData = base56decode(textualIdentity.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();

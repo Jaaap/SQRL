@@ -23,13 +23,15 @@ function onImportFormSubmit(evt)
 		}
 	});
 }
-
-function onTextualIdentityKeyUp(evt)
+function onExportFormSubmit(evt)
 {
-	let ta = evt.target;
-	let validationData = validateTextualIdentity(ta.value);
-	$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
-	$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
+	evt.preventDefault();
+	console.log(this, evt);
+}
+function onSetpasswordFormSubmit(evt)
+{
+	evt.preventDefault();
+	console.log(this, evt);
 }
 function onChangepasswordFormSubmit(evt)
 {
@@ -56,9 +58,20 @@ function onSettingsFormSubmit(evt)
 	evt.preventDefault();
 	console.log(this, evt);
 }
+
+function onTextualIdentityKeyUp(evt)
+{
+	let ta = evt.target;
+	let validationData = validateTextualIdentity(ta.value);
+	$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
+	$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
+}
 function setTabsEnabling(hasIdentity)
 {
-	$('#tab3,#tab4,#tab5,#tab6').enable(hasIdentity);
+	let hasPassword = false;//FIXME
+	$('#tab3,#tab6,#tab7').enable(hasIdentity);
+	$('#tab4').enable(hasIdentity && !hasPassword);
+	$('#tab5').enable(hasPassword);
 	$('#tab1,#tab2').enable(!hasIdentity);
 }
 function init()
@@ -66,6 +79,8 @@ function init()
 	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
 	$('form#create').submit(onCreateFormSubmit);
 	$('form#import').submit(onImportFormSubmit);
+	$('form#export').submit(onExportFormSubmit);
+	$('form#setpassword').submit(onSetpasswordFormSubmit);
 	$('form#changepassword').submit(onChangepasswordFormSubmit);
 	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
 	$('form#eraseidentity').submit(onEraseidentityFormSubmit);

@@ -34,7 +34,7 @@ label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
 label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress { width: 270px; }
 label>textarea { border: 0 none; height: 150px; line-height: 22px; }
 #import label>textarea { height: 300px; }
-label.pwd>input { width: 440px; }
+label.pwd>input { width: 380px; }
 label+b { padding: 0 0 0 8px; cursor: pointer; vertical-align: top; display: inline-block; width: 28px; line-height: 22px; }
 label+b:hover { text-shadow: 0 0 4px #FFF; }
 input.confirm[type="checkbox"]+button { display: none; }
@@ -56,19 +56,17 @@ button.failure::after { content: " ❌"; }
 <body>
 <main>
 <h1><img src="../icons/256.png"/>SQRL</h1>
-<label class="pwd notyet"><span>Password</span><input type="password" name="password" autofocus/></label><b title="Show Password">👁</b>
+<form id="passwd" class="notyet">
+	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><label><input type="checkbox" name="savepwd"/>Remember</label>
+</form>
 <div>
 	<div><input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label><div>
 		<form id="create" class="notyet">
 			<label><span></span><button type="button">Generate new Identity (randomize)</button></label><br/>
-			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><b title="Show Identity">👁</b><br/>
+			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
 			<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
 			<label><span></span>Write this code down on paper</label><br/>
 			<br/>
-			<label><span>Name</span><input type="text" name="name" placeholder="Name or title for this Identity"/></label><br/>
-			<label><span>Password*</span><input type="password" name="password"/></label><br/>
-			<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
-			<label><span></span><progress value="0"></progress></label><br/>
 			<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode"/></label><br/>
 			<label><span></span><button>Save</button></label><br/>
 		</form>
@@ -78,14 +76,26 @@ button.failure::after { content: " ❌"; }
 		<form id="import">
 			<label><span>Identity</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83"></textarea></label><b></b><br/>
 			<label><span>Rescue Code</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-){5}\d{4}"/></label><br/>
-			<label><span></span><button>Import</button></label><br/>
+			<label><span></span><button>Import (this takes 10s)</button></label><br/>
 		</form>
 	</div></div>
 
 	<div><input type="radio" name="tab" value="3" id="tab3"/><label for="tab3">Export Identity</label><div>
+		<form id="export" class="notyet">
+			<label><span>Identity</span><textarea name="identity"></textarea></label><b></b><br/>
+		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="4" id="tab4"/><label for="tab4">Change Password</label><div>
+	<div><input type="radio" name="tab" value="4" id="tab4"/><label for="tab4">Set Password</label><div>
+		<form id="setpassword" class="notyet">
+			<label><span>Password*</span><input type="password" name="password"/></label><br/>
+			<label><span>Password Again*</span><input type="password" name="verifypassword"/></label><br/>
+			<label><span></span><progress value="0"></progress></label><br/>
+			<label><span></span><button>Save</button></label><br/>
+		</form>
+	</div></div>
+
+	<div><input type="radio" name="tab" value="5" id="tab5"/><label for="tab5">Change Password</label><div>
 		<form id="changepassword" class="notyet">
 			<label><span>Old Password</span><input type="password" name="password"/></label><br/>
 			<br/>
@@ -96,19 +106,19 @@ button.failure::after { content: " ❌"; }
 		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="5" id="tab5"/><label for="tab5">Clear Data</label><div>
+	<div><input type="radio" name="tab" value="6" id="tab6"/><label for="tab6">Clear Data</label><div>
 		<form id="deletepassword" class="notyet">
 			<label><span>Delete Password from Browser Memory</span><button>Delete Password</button></label><br/>
 		</form>
 		<br/>
 		<form id="eraseidentity">
-			<label><span>Delete all SQRL Identity Information from Browser Memory and Disk</span></label>
+			<label><span>Erase all SQRL Identity Information from Browser Memory and Disk</span></label>
 			<input type="checkbox" name="eraseconfirm" class="confirm"/>
 			<button>Erase SQRL Identity</button>
 		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="6" id="tab6"/><label for="tab6">Settings</label><div>
+	<div><input type="radio" name="tab" value="7" id="tab7"/><label for="tab7">Settings</label><div>
 		<form id="settings" class="notyet">
 			<label><input type="checkbox" name="reqsqrlloginonly"/><span>Request only SQRL Login</span></label><br/>
 			<label><input type="checkbox" name="reqsqrllnobypass"/><span>Request no SQRL Bypass</span></label><br/>
@@ -116,7 +126,7 @@ button.failure::after { content: " ❌"; }
 		</form>
 	</div></div>
 
-	<div><input type="radio" name="tab" value="7" id="tab7"/><label for="tab7">Help</label><div>
+	<div><input type="radio" name="tab" value="8" id="tab8"/><label for="tab8">Help</label><div>
 		<label><span>Version</span><b id="version">0.0.0</b></label><br/>
 		<label><span>More info</span><a href="https://grc.com/sqrl/sqrl.htm" target="_blank">grc.com/sqrl</a></label><br/>
 	</div></div>
