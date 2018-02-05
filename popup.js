@@ -49,11 +49,6 @@ function onEraseidentityFormSubmit(evt)
 		setTabsEnabling(false);
 	});
 }
-function onSettingsFormSubmit(evt)
-{
-	evt.preventDefault();
-	console.log(this, evt);
-}
 
 function onTextualIdentityKeyUp(evt)
 {
@@ -65,7 +60,7 @@ function onTextualIdentityKeyUp(evt)
 function setTabsEnabling(hasIdentity)
 {
 	let hasPassword = false;//FIXME
-	$('#tab3,#tab6,#tab7').enable(hasIdentity);
+	$('#tab3,#tab6').enable(hasIdentity);
 	$('#tab4').enable(hasIdentity && !hasPassword);
 	$('#tab5').enable(hasPassword);
 	$('#tab1,#tab2').enable(!hasIdentity);
@@ -79,7 +74,6 @@ function init()
 	$('form#changepassword').submit(onChangepasswordFormSubmit);
 	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
 	$('form#eraseidentity').submit(onEraseidentityFormSubmit);
-	$('form#settings').submit(onSettingsFormSubmit);
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 	if ("chrome" in window)
 	{
