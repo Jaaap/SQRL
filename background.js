@@ -24,10 +24,6 @@ window.sodium = { onload: function(sodium) {
 			else
 				throw new Error('Argument 1 "data" should be a Uint8Array of length 73');
 		}
-		function base64url_encode(str)
-		{
-			return sodium.to_base64(sodium.from_string(str)); //FIXME: is this the "url" variant?
-		}
 		function getPostData(href)
 		{
 			if (typeof href == "string" && href.startsWith("sqrl://"))

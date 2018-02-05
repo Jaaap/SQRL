@@ -3,12 +3,15 @@ const base56chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
 
 function memzero(e)
 {
-	if (e instanceof Uint8Array || Array.isArray(e))
+	if (e instanceof Uint8Array)
 		for (let i = 0; i < e.length; i++)
 			e[i] = 0;
 	else if (e instanceof BN)
 		for (let i = 0; i < e.words.length; i++)
 			e.words[i] = 0;
+	else if (Array.isArray(e)) //TODO: check that setting the values to null is better than setting them to 0
+		for (let i = 0; i < e.length; i++)
+			e[i] = null;
 	else
 		throw new Error("Only Uint8Array, Array and BN instances can be wiped");
 }
@@ -157,6 +160,10 @@ function validateTextualIdentity(ti)
 
 
 
+function base64url_encode(str)
+{
+	return sodium.to_base64(sodium.from_string(str), sodium.base64_variants.URLSAFE_NO_PADDING);
+}
 //uses BigNum, https://github.com/indutny/bn.js/
 function base56encode(i)
 {
