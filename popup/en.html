@@ -27,6 +27,7 @@ body { font-family: Verdana, Helvetica; width: 680px; height: 584px; }
 main { height: 100%; margin: 4px; padding: 8px; background-color: var(--sqrl-blue); color: #FFF; border-radius: 4px; }
 h1 { margin: 0 0 16px 0; font-size: 46px; line-height: 32px; }
 h1>img { float: right; width: 39px; height: 39px; vertical-align: top; border: 1px solid #FFF; border-radius: 8px; box-shadow: 0 0 4px #FFF; }
+h1>span { font-size: 16px; padding-left: 24px; }
 
 label.pwd { display: inline-block; margin: 0 0 12px 0; }
 label>span { display: inline-block; width: 150px; vertical-align: top; }
@@ -55,7 +56,7 @@ button.failure::after { content: " ❌"; }
 </head>
 <body>
 <main>
-<h1><img src="../icons/256.png"/>SQRL</h1>
+<h1><img src="../icons/256.png"/>SQRL<span id="identityhash"></span></h1>
 <form id="passwd" class="notyet">
 	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><label><input type="checkbox" name="savepwd"/>Remember</label>
 </form>

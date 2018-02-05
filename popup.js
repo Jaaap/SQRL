@@ -88,8 +88,10 @@ function init()
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 	if ("chrome" in window)
 	{
-		chrome.runtime.sendMessage({'action': 'hasIdentity' }, hasIdentity => {
-			setTabsEnabling(hasIdentity);
+		chrome.runtime.sendMessage({'action': 'hasIdentity' }, result => {
+			setTabsEnabling(result.hasIdentity);
+			if (result.hasIdentity)
+				$('#identityhash').text(result.name);
 		});
 		$('#version').text(chrome.runtime.getManifest().version);
 	}

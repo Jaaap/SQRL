@@ -5,9 +5,28 @@ window.sodium = { onload: function(sodium) {
 	scrypt_module_factory(scrypt => {
 		let IMK = null;
 
+		function parseBlockType2(data)
+		{
+			if (data.constructor === Uint8Array && data.length === 73)
+			{
+				let blockType = ab2int(data.slice(2, 4));
+				if (blockType == 2)
+					return {
+						"enscryptSalt": data.slice(4, 20),
+						"enscryptLogN": ab2int(data.slice(20, 21)),
+						"enscryptIter": ab2int(data.slice(21, 25)),
+						"dataToDecrypt": data.slice(25, 73),
+						"additionalData": data.slice(0, 25)
+					}
+				else
+					throw new Error('Argument 1 "data" should be a type 2 identity data block');
+			}
+			else
+				throw new Error('Argument 1 "data" should be a Uint8Array of length 73');
+		}
 		function base64url_encode(str)
 		{
-			return sodium.to_base64(sodium.from_string(str));
+			return sodium.to_base64(sodium.from_string(str)); //FIXME: is this the "url" variant?
 		}
 		function getPostData(href)
 		{
@@ -23,7 +42,7 @@ window.sodium = { onload: function(sodium) {
 						let HMAC256Hash = sodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
 
 						let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = sodium.crypto_sign_seed_keypair(HMAC256Hash);
-						sodium.memzero(HMAC256Hash);
+						memzero(HMAC256Hash);
 
 						let client = base64url_encode([
 							"ver=1",
@@ -32,11 +51,11 @@ window.sodium = { onload: function(sodium) {
 							"opt=cps",
 							"" //keep this empty string for trailing \r\n
 						].join("\r\n"));
-						sodium.memzero(SitePublicKey);
+						memzero(SitePublicKey);
 
 						let server = base64url_encode(href);
 						let ids = sodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
-						sodium.memzero(SitePrivateKey);
+						memzero(SitePrivateKey);
 
 						return {"success": true, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')};
 					}
@@ -55,22 +74,23 @@ window.sodium = { onload: function(sodium) {
 			if (validationResult.success)
 			{
 				let identityData = base56decode(textualIdentity.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
-				console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
+				//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
 				let blockSize = ab2int(identityData.slice(0, 2));
 				let blockType = ab2int(identityData.slice(2, 4));
 				if (blockType == 2)
 				{
+					chrome.storage.local.set({"identityDataType2": Array.from(identityData)});
 					let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
-					console.log("extractedBlock2", extractedBlock2);
-					console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
+					//console.log("extractedBlock2", extractedBlock2);
+					//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
 					let enscryptedPwd = enscrypt(scrypt.crypto_scrypt, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter);
-					console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
+					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
 					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
 						let IUK = new Uint8Array(decrypted);
-						console.log("IUK", IUK);
+						//console.log("IUK", IUK);
 						IMK = enhash(IUK);
 						//FIXME: encrypt IMK with password
-						chrome.storage.local.set({"IMK": IMK});
+						chrome.storage.local.set({"IMK": Array.from(IMK)});
 						sendResponse({"success": true});
 					}).catch(err => {
 						sendResponse({"success": false, "errorCode": "ERRII002"});
@@ -99,12 +119,12 @@ window.sodium = { onload: function(sodium) {
 			{
 				if (request.action === "hasIdentity")
 				{
-					sendResponse(IMK != null);
+					sendResponse({"hasIdentity": IMK != null, "name": IMK == null ? null : ab2hex(sodium.crypto_hash_sha256(IMK)).substr(0,8)});
 				}
 				else if (request.action === "eraseIdentity")
 				{
 					IMK = null;
-					chrome.storage.local.remove("IMK", () => {
+					chrome.storage.local.remove(["IMK","identityDataType2"], () => {
 						sendResponse(chrome.runtime.lastError);
 					});
 					return true;
@@ -123,7 +143,8 @@ window.sodium = { onload: function(sodium) {
 		// init
 		chrome.storage.local.get("IMK", function(result){
 			if (result.IMK)
-				IMK = result.IMK;
+				IMK = new Uint8Array(result.IMK);
+				memzero(result.IMK);
 		});
 	});
 }};

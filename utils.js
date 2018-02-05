@@ -3,14 +3,14 @@ const base56chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
 
 function memzero(e)
 {
-	if (e instanceof Uint8Array)
+	if (e instanceof Uint8Array || Array.isArray(e))
 		for (let i = 0; i < e.length; i++)
 			e[i] = 0;
 	else if (e instanceof BN)
 		for (let i = 0; i < e.words.length; i++)
 			e.words[i] = 0;
 	else
-		throw new Error("Only Uint8Array and BN instances can be wiped");
+		throw new Error("Only Uint8Array, Array and BN instances can be wiped");
 }
 function str2ab(str) //string to arraybuffer (Uint8Array)
 {
@@ -154,27 +154,6 @@ function validateTextualIdentity(ti)
 	}
 	return { "success": true, "lineNr": lines.length };
 }
-
-function parseBlockType2(data)
-{
-	if (data.constructor === Uint8Array && data.length === 73)
-	{
-		let blockType = ab2int(data.slice(2, 4));
-		if (blockType == 2)
-			return {
-				"enscryptSalt": data.slice(4, 20),
-				"enscryptLogN": ab2int(data.slice(20, 21)),
-				"enscryptIter": ab2int(data.slice(21, 25)),
-				"dataToDecrypt": data.slice(25, 73),
-				"additionalData": data.slice(0, 25)
-			}
-		else
-			throw new Error('Argument 1 "data" should be a type 2 identity data block');
-	}
-	else
-		throw new Error('Argument 1 "data" should be a Uint8Array of length 73');
-}
-
 
 
 
