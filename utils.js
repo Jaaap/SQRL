@@ -55,8 +55,13 @@ function ui8aXOR(a, b) //beware: result is written back into a
 		a[i] =  a[i] ^ b[i];
 	}
 }
+function sleep(ms)
+{
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 //uses https://github.com/tonyg/js-scrypt/raw/master/browser/scrypt.js
-function enscrypt(scrypt, pwd, salt, iterations)
+async function enscrypt(scrypt, pwd, salt, iterations, callback)
 {
 	let result = scrypt(pwd, salt, 512, 256, 1, 32);
 	let xorresult = new Uint8Array(result);
@@ -64,6 +69,9 @@ function enscrypt(scrypt, pwd, salt, iterations)
 	{
 		result = scrypt(pwd, result, 512, 256, 1, 32);
 		ui8aXOR(xorresult, result);//result of XOR is written back into xorresult
+		if (typeof callback == "function")
+			callback(i, iterations - 1);
+		await sleep(10); //sleep 10ms to allow UI update
 	}
 	memzero(result);
 	return xorresult;

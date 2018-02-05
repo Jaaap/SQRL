@@ -77,6 +77,12 @@ function init()
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 	if ("chrome" in window)
 	{
+		chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+			if (request.action == "enscryptUpdate")
+			{
+				$('form#import progress').val(request.step).attr("max", request.max);
+			}
+		});
 		chrome.runtime.sendMessage({'action': 'hasIdentity' }, result => {
 			setTabsEnabling(result.hasIdentity);
 			if (result.hasIdentity)

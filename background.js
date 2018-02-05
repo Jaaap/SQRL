@@ -80,17 +80,20 @@ window.sodium = { onload: function(sodium) {
 					let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
 					//console.log("extractedBlock2", extractedBlock2);
 					//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
-					let enscryptedPwd = enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter);
-					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
-					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
-						let IUK = new Uint8Array(decrypted);
-						//console.log("IUK", IUK);
-						IMK = enhash(IUK);
-						//FIXME: encrypt IMK with password
-						chrome.storage.local.set({"IMK": Array.from(IMK)});
-						sendResponse({"success": true, "name": ab2hex(sodium.crypto_hash_sha256(IMK)).substr(0,8)});
-					}).catch(err => {
-						sendResponse({"success": false, "errorCode": "ERRII002"});
+					enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter, (step, max) => {
+						chrome.runtime.sendMessage({'action': 'enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
+					}).then(enscryptedPwd => {
+						//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
+						aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
+							let IUK = new Uint8Array(decrypted);
+							//console.log("IUK", IUK);
+							IMK = enhash(IUK);
+							//FIXME: encrypt IMK with password
+							chrome.storage.local.set({"IMK": Array.from(IMK)});
+							sendResponse({"success": true, "name": ab2hex(sodium.crypto_hash_sha256(IMK)).substr(0,8)});
+						}).catch(err => {
+							sendResponse({"success": false, "errorCode": "ERRII002"});
+						});
 					});
 				}
 				else
@@ -102,7 +105,7 @@ window.sodium = { onload: function(sodium) {
 			}
 		}
 
-		chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+		chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			if (sender.tab) //from content, TODO: CHECK THAT THIS IS SAFE
 			{
 				if (request.action === "getPostData")
