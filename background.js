@@ -2,8 +2,8 @@
 "use strict";
 
 window.sodium = { onload: function(sodium) {
-	scrypt_module_factory(scrypt => {
-		let IMK = null;
+	//scrypt_module_factory(scrypt => {
+		let IMK = null, textualIdentity = null;
 
 		function parseBlockType2(data)
 		{
@@ -62,24 +62,25 @@ window.sodium = { onload: function(sodium) {
 			else
 				return {"success": false, "errorCode": "ERRPD001"};
 		}
-		function importIdentity(textualIdentity, rescueCode, sendResponse)
+		function importIdentity(ti, rescueCode, sendResponse)
 		{
 			//FIXME: check that length of textual identity corresponds to a valid type2 or type2+type3 block
 			// ... the following pre-calculated fixed character counts may be used: 107, 185, 232, 278, 325 for the five possible textual identity lengths (spaces and newlines removed).
-			let validationResult = validateTextualIdentity(textualIdentity); //will also return success == true if the textual identity is only partly entered!
+			let validationResult = validateTextualIdentity(ti); //will also return success == true if the textual identity is only partly entered!
 			if (validationResult.success)
 			{
-				let identityData = base56decode(textualIdentity.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
+				let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
 				//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
 				let blockSize = ab2int(identityData.slice(0, 2));
 				let blockType = ab2int(identityData.slice(2, 4));
 				if (blockType == 2)
 				{
-					chrome.storage.local.set({"identityDataType2": Array.from(identityData)});
+					textualIdentity = ti;
+					chrome.storage.local.set({"textualIdentity": ti});
 					let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
 					//console.log("extractedBlock2", extractedBlock2);
 					//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
-					let enscryptedPwd = enscrypt(scrypt.crypto_scrypt, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter);
+					let enscryptedPwd = enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter);
 					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
 					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
 						let IUK = new Uint8Array(decrypted);
@@ -87,7 +88,7 @@ window.sodium = { onload: function(sodium) {
 						IMK = enhash(IUK);
 						//FIXME: encrypt IMK with password
 						chrome.storage.local.set({"IMK": Array.from(IMK)});
-						sendResponse({"success": true});
+						sendResponse({"success": true, "name": ab2hex(sodium.crypto_hash_sha256(IMK)).substr(0,8)});
 					}).catch(err => {
 						sendResponse({"success": false, "errorCode": "ERRII002"});
 					});
@@ -115,7 +116,7 @@ window.sodium = { onload: function(sodium) {
 			{
 				if (request.action === "hasIdentity")
 				{
-					sendResponse({"hasIdentity": IMK != null, "name": IMK == null ? null : ab2hex(sodium.crypto_hash_sha256(IMK)).substr(0,8)});
+					sendResponse({"hasIdentity": IMK != null, "name": IMK == null ? null : ab2hex(sodium.crypto_hash_sha256(IMK)).substr(0,8), "textualIdentity": textualIdentity});
 				}
 				else if (request.action === "eraseIdentity")
 				{
@@ -137,12 +138,18 @@ window.sodium = { onload: function(sodium) {
 		});
 
 		// init
-		chrome.storage.local.get("IMK", function(result){
+		chrome.storage.local.get(["IMK", "textualIdentity"], function(result){
 			if (result.IMK)
+			{
 				IMK = new Uint8Array(result.IMK);
 				memzero(result.IMK);
+			}
+			if (result.textualIdentity)
+			{
+				textualIdentity = result.textualIdentity;
+			}
 		});
-	});
+	//});
 }};
 var scrpt = document.createElement("script");
 scrpt.setAttribute("src", "sodium-asmjs.js");

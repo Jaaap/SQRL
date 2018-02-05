@@ -1054,14 +1054,23 @@ expect(enhash(sodium.from_base64("kOoxknfxlX2PiSHjp4qafZEzVpmSo4TlZQFO1QyCJ9Y"))
 		});
 		describe("enscrypt", function() {
 			scrypt_module_factory(function(scrypt){
-				it("password 1i", function() {
+				it("password 1i tonyg", function() {
 					expect(ab2hex(enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 1))).to.equal("532bcc911c16df81996258158de460b2e59d9a86531d59661da5fbeb69f7cd54");
 				});
-				it("password 2i", function() {
+				it("password 2i tonyg", function() {
 					expect(ab2hex(enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 2))).to.equal("2d516e99bceb1f49e4dc02217ffc6bac28ea1a9b2d67c1dabd85185163ffe2de");
 				});
-				it("password 3i", function() {
+				it("password 3i tonyg", function() {
 					expect(ab2hex(enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 3))).to.equal("7b1bebe5b2e4afc8d2520abbd6e4d7f1420b018477065577c5d684690198195d");
+				});
+				it("password 1i sodium", function() {
+					expect(ab2hex(enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 1))).to.equal("532bcc911c16df81996258158de460b2e59d9a86531d59661da5fbeb69f7cd54");
+				});
+				it("password 2i sodium", function() {
+					expect(ab2hex(enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 2))).to.equal("2d516e99bceb1f49e4dc02217ffc6bac28ea1a9b2d67c1dabd85185163ffe2de");
+				});
+				it("password 3i sodium", function() {
+					expect(ab2hex(enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 3))).to.equal("7b1bebe5b2e4afc8d2520abbd6e4d7f1420b018477065577c5d684690198195d");
 				});
 			});
 		});

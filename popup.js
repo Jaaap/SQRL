@@ -19,14 +19,10 @@ function onImportFormSubmit(evt)
 			elems.identity.value = "";
 			elems.rescuecode.value = "";
 			$('form#import label+b').text("").attr("title", "");
+			$('#identityhash').text(result.name);
 			setTabsEnabling(true);
 		}
 	});
-}
-function onExportFormSubmit(evt)
-{
-	evt.preventDefault();
-	console.log(this, evt);
 }
 function onSetpasswordFormSubmit(evt)
 {
@@ -79,7 +75,6 @@ function init()
 	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
 	$('form#create').submit(onCreateFormSubmit);
 	$('form#import').submit(onImportFormSubmit);
-	$('form#export').submit(onExportFormSubmit);
 	$('form#setpassword').submit(onSetpasswordFormSubmit);
 	$('form#changepassword').submit(onChangepasswordFormSubmit);
 	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
@@ -92,6 +87,8 @@ function init()
 			setTabsEnabling(result.hasIdentity);
 			if (result.hasIdentity)
 				$('#identityhash').text(result.name);
+			if (result.textualIdentity)
+				$('form#export textarea[name="identity"]').val(result.textualIdentity);
 		});
 		$('#version').text(chrome.runtime.getManifest().version);
 	}
