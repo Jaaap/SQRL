@@ -87,7 +87,7 @@ window.sodium = { onload: function(sodium) {
 						aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
 							let IUK = new Uint8Array(decrypted);
 							//console.log("IUK", IUK);
-							IMK = enhash(IUK);
+							IMK = enhash(sodium, IUK);
 							//FIXME: encrypt IMK with password
 							chrome.storage.local.set({"IMK": Array.from(IMK)});
 							sendResponse({"success": true, "name": ab2hex(sodium.crypto_hash_sha256(IMK)).substr(0,8)});

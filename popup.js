@@ -19,8 +19,6 @@ function onImportFormSubmit(evt)
 			elems.identity.value = "";
 			elems.rescuecode.value = "";
 			$('form#import label+b').text("").attr("title", "");
-			$('#identityhash').text(result.name);
-			setTabsEnabling(true);
 		}
 	});
 }
@@ -46,7 +44,7 @@ function onEraseidentityFormSubmit(evt)
 		let btn = $('form#eraseidentity button')[0];
 		btn.className = error ? "failure" : "success";
 		btn.title = error || "";
-		setTabsEnabling(false);
+		setPopupState();
 	});
 }
 
@@ -57,13 +55,19 @@ function onTextualIdentityKeyUp(evt)
 	$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
 	$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
 }
-function setTabsEnabling(hasIdentity)
+function setPopupState()
 {
-	let hasPassword = false;//FIXME
-	$('#tab3,#tab6').enable(hasIdentity);
-	$('#tab4').enable(hasIdentity && !hasPassword);
-	$('#tab5').enable(hasPassword);
-	$('#tab1,#tab2').enable(!hasIdentity);
+	chrome.runtime.sendMessage({'action': 'hasIdentity' }, result => {
+		let hasPassword = false;//FIXME
+		$('#tab1,#tab2').enable(!result.hasIdentity);
+		$('#tab3,#tab6').enable(result.hasIdentity);
+		$('#tab4').enable(result.hasIdentity && !hasPassword);
+		$('#tab5').enable(hasPassword);
+		if (result.hasIdentity)
+			$('#identityhash').text(result.name);
+		if (result.textualIdentity)
+			$('form#export textarea[name="identity"]').val(result.textualIdentity);
+	});
 }
 function init()
 {
@@ -77,23 +81,20 @@ function init()
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 	if ("chrome" in window)
 	{
-		chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-			if (request.action == "enscryptUpdate")
-			{
-				$('form#import progress').val(request.step).attr("max", request.max);
-			}
-		});
-		chrome.runtime.sendMessage({'action': 'hasIdentity' }, result => {
-			setTabsEnabling(result.hasIdentity);
-			if (result.hasIdentity)
-				$('#identityhash').text(result.name);
-			if (result.textualIdentity)
-				$('form#export textarea[name="identity"]').val(result.textualIdentity);
-		});
+		setPopupState();
 		$('#version').text(chrome.runtime.getManifest().version);
 	}
 }
 
+if ("chrome" in window)
+{
+	chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+		if (request.action == "enscryptUpdate")
+		{
+			$('form#import progress').val(request.step).attr("max", request.max);
+		}
+	});
+}
 document.addEventListener("DOMContentLoaded", init);
 
 }

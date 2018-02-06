@@ -60,23 +60,25 @@ function sleep(ms)
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-//uses https://github.com/tonyg/js-scrypt/raw/master/browser/scrypt.js
+//uses https://github.com/tonyg/js-scrypt/ or sodium
 async function enscrypt(scrypt, pwd, salt, iterations, callback)
 {
+	if (typeof callback != "function")
+		callback = function(){};
 	let result = scrypt(pwd, salt, 512, 256, 1, 32);
 	let xorresult = new Uint8Array(result);
 	for (let i = 1; i < iterations; i++)
 	{
+		callback(i, iterations);
+		await sleep(1); //sleep 1ms to allow UI update
 		result = scrypt(pwd, result, 512, 256, 1, 32);
 		ui8aXOR(xorresult, result);//result of XOR is written back into xorresult
-		if (typeof callback == "function")
-			callback(i, iterations - 1);
-		await sleep(10); //sleep 10ms to allow UI update
 	}
 	memzero(result);
+	callback(iterations, iterations);
 	return xorresult;
 }
-function enhash(input)
+function enhash(sodium, input)
 {
 	if (input.constructor === Uint8Array && input.length === 32)
 	{
