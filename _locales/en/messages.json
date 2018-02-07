@@ -6,8 +6,5 @@
 	"description": {
 		"message": "Secure Quick Reliable Login",
 		"description": "Description of the extension."
-	},
-	"popup": {
-		"message": "popup/en.html"
 	}
 }

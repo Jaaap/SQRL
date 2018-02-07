@@ -135,7 +135,7 @@ function importIdentity(ti, rescueCode, sendResponse)
 	}
 }
 
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	/* for content.js */
 	if (request.action === "getPostData")
 	{
@@ -145,7 +145,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		/*
 		let result = getPostData(request.href);
 		sendResponse(result);
-		browser.browserAction.setBadgeText({"text": result.success ? "" : "Error", "tabId": sender.tab.id});
+		chrome.browserAction.setBadgeText({"text": result.success ? "" : "Error", "tabId": sender.tab.id});
 		*/
 	}
 	/* for popup.js */
@@ -168,7 +168,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	{
 		IMK = null;
 		chrome.storage.local.remove(["IMK","identityDataType2"], () => {
-			sendResponse(browser.runtime.lastError);
+			sendResponse(chrome.runtime.lastError);
 		});
 		return true;
 	}
