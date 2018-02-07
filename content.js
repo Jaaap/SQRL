@@ -44,9 +44,9 @@ function ajax(url, postData, callback)
 
 function onAjaxCallback(responseText)
 {
-	console.log("onAjaxCallback", responseText);
+	//console.log("onAjaxCallback", responseText);
 	let responseLines = base64url_decode(responseText).split("\r\n");
-	console.log("onAjaxCallback", responseLines);
+	//console.log("onAjaxCallback", responseLines);
 	let foundUrl = false;
 	responseLines.forEach(line => {
 		if (line.startsWith("url="))
@@ -69,7 +69,7 @@ function onAnchorClick(evt)
 	if (anchor.tagName == "A")
 	{
 		chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href}, result => {
-			console.log(result);
+			//console.log(result);
 			if (result.success)
 				ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, onAjaxCallback);
 		});

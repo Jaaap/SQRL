@@ -37,11 +37,20 @@ function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.M
 }
 function ab2hex(ab) //arraybuffer (Uint8Array) to hex
 {
+	let ui8a = null;
+	if (ab instanceof ArrayBuffer)
+		ui8a = new Uint8Array(ab);
+	else if (ab instanceof Uint8Array)
+		ui8a = ab;
+	else
+		throw new Error("First argument \"ab\" should be an Uint8Array or an ArrayBuffer");
 	let result = [];
-	for (let i of ab)
+	for (let i of ui8a)
 	{
 		result.push(('00'+i.toString(16)).slice(-2));
 	}
+	if (ab instanceof ArrayBuffer)
+		memzero(ui8a);
 	return result.join('');
 }
 function ar2hex(ar) //array of integers to hex

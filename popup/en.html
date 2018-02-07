@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>SQRL</title>
-<!-- TODO: Remove extension.css stylesheet -->
-<link rel="stylesheet" href="chrome://browser/content/extension.css"/>
+<!--link rel="stylesheet" href="chrome://browser/content/extension.css"/-->
 <script src="../sodium-asmjs.js" async></script>
 <script src="../bn.js" async></script>
 <script src="../jQueryLight.js" defer></script>
@@ -12,7 +11,8 @@
 <script src="../popup.js" defer></script>
 <style>
 :root { --sqrl-blue: #007CC3; --grey: #7FBDE1; }
-html,body { margin: 0; }
+* { box-sizing: border-box; }
+html,body { display: flex; margin: 0; flex-direction: column; }
 body,label,input { font-size: 17px; }
 button { font-size: 17px; }
 textarea { font-size: 17px; }
