@@ -1,7 +1,14 @@
 {
 "use strict";
-let localSodium = null, IMK = null, textualIdentity = null;
-window.sodium = { onload: sod => { localSodium = sod; }};
+let localSodium = null, IMK = null, textualIdentity = null, sodiumLoadQueue = [];
+window.sodium = { onload: sod => {
+	localSodium = sod;
+	for (func of sodiumLoadQueue)
+	{
+		func();
+	}
+	sodiumLoadQueue = [];
+}};
 
 
 
@@ -24,7 +31,7 @@ function parseBlockType2(data)
 	else
 		throw new Error('Argument 1 "data" should be a Uint8Array of length 73');
 }
-function getPostData(href)
+function getPostDataAsync(href, sendResponse)
 {
 	if (typeof href == "string" && href.startsWith("sqrl://"))
 	{
@@ -32,35 +39,58 @@ function getPostData(href)
 		if (hurl != null && isValidHostname(hurl.hostname))
 		{
 			if (IMK == null)
-				return {"success": false, "errorCode": "ERRPD003"};
+			{
+				sendResponse({"success": false, "errorCode": "ERRPD003"});
+				return true;
+			}
 			else
 			{
-				let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
+				var work = (href, hurl) => {
+					let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
 
-				let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
-				memzero(HMAC256Hash);
+					let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
+					memzero(HMAC256Hash);
 
-				let client = base64url_encode([
-					"ver=1",
-					"cmd=ident",
-					"idk=" + localSodium.to_base64(SitePublicKey),
-					"opt=cps",
-					"" //keep this empty string for trailing \r\n
-				].join("\r\n"));
-				memzero(SitePublicKey);
+					let client = base64url_encode([
+						"ver=1",
+						"cmd=ident",
+						"idk=" + localSodium.to_base64(SitePublicKey),
+						"opt=cps",
+						"" //keep this empty string for trailing \r\n
+					].join("\r\n"));
+					memzero(SitePublicKey);
 
-				let server = base64url_encode(href);
-				let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
-				memzero(SitePrivateKey);
+					let server = base64url_encode(href);
+					let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
+					memzero(SitePrivateKey);
 
-				return {"success": true, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')};
+					sendResponse({"success": true, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
+				};
+				if (localSodium == null) //Fennec
+				{
+					sodiumLoadQueue.push(function(){
+						work(href, hurl);
+					});
+					return false;
+				}
+				else
+				{
+					work(href, hurl);
+					return true;
+				}
 			}
 		}
 		else
-			return {"success": false, "errorCode": "ERRPD002"};
+		{
+			sendResponse({"success": false, "errorCode": "ERRPD002"});
+			return true;
+		}
 	}
 	else
-		return {"success": false, "errorCode": "ERRPD001"};
+	{
+		sendResponse({"success": false, "errorCode": "ERRPD001"});
+		return true;
+	}
 }
 function importIdentity(ti, rescueCode, sendResponse)
 {
@@ -105,52 +135,55 @@ function importIdentity(ti, rescueCode, sendResponse)
 	}
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	if (sender.tab) //from content, TODO: CHECK THAT THIS IS SAFE
+browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	/* for content.js */
+	if (request.action === "getPostData")
 	{
-		if (request.action === "getPostData")
-		{
-			let result = getPostData(request.href);
-			sendResponse(result);
-			chrome.browserAction.setBadgeText({"text": result.success ? "" : "Error", "tabId": sender.tab.id});
-		}
+		let hasCalledSendresponse = getPostDataAsync(request.href, sendResponse);
+		if (!hasCalledSendresponse)
+			return true; // make asynchronous
+		/*
+		let result = getPostData(request.href);
+		sendResponse(result);
+		browser.browserAction.setBadgeText({"text": result.success ? "" : "Error", "tabId": sender.tab.id});
+		*/
 	}
-	else //from popup
+	/* for popup.js */
+	//FIXME: find a way to make sure these requests are not coming from content.js but from popup.js
+	else if (request.action === "hasIdentity")
 	{
-		if (request.action === "hasIdentity")
+		if (IMK == null)
 		{
-			if (IMK == null)
-			{
-				sendResponse({"hasIdentity": false});
-			}
-			else
-			{
-				crypto.subtle.digest('SHA-256', IMK).then(sha256result => {
-					sendResponse({"hasIdentity": true, "name": ab2hex(sha256result).substr(0,8), "textualIdentity": textualIdentity});
-				});
-				return true;
-			}
+			sendResponse({"hasIdentity": false});
 		}
-		else if (request.action === "eraseIdentity")
+		else
 		{
-			IMK = null;
-			chrome.storage.local.remove(["IMK","identityDataType2"], () => {
-				sendResponse(chrome.runtime.lastError);
+			crypto.subtle.digest('SHA-256', IMK).then(sha256result => {
+				sendResponse({"hasIdentity": true, "name": ab2hex(sha256result).substr(0,8), "textualIdentity": textualIdentity});
 			});
 			return true;
 		}
-		else if (request.action === "importIdentity")
-		{
-			let errorCode = importIdentity(request.textualIdentity, request.rescueCode, sendResponse);
-			if (errorCode)
-				sendResponse({"success": false, "errorCode": errorCode });
-			else
-				return true; // so importIdentity() can use sendResponse() asynchronously
-		}
 	}
+	else if (request.action === "eraseIdentity")
+	{
+		IMK = null;
+		chrome.storage.local.remove(["IMK","identityDataType2"], () => {
+			sendResponse(browser.runtime.lastError);
+		});
+		return true;
+	}
+	else if (request.action === "importIdentity")
+	{
+		let errorCode = importIdentity(request.textualIdentity, request.rescueCode, sendResponse);
+		if (errorCode)
+			sendResponse({"success": false, "errorCode": errorCode });
+		else
+			return true; // so importIdentity() can use sendResponse() asynchronously
+	}
+	else
+		console.warn("background request action not recognised", request.action);
 });
 
-// init
 chrome.storage.local.get(["IMK", "textualIdentity"], function(result){
 	if (result.IMK)
 	{
