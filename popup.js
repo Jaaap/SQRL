@@ -19,6 +19,7 @@ function onImportFormSubmit(evt)
 			elems.identity.value = "";
 			elems.rescuecode.value = "";
 			$('form#import label+b').text("").attr("title", "");
+			setPopupState();
 		}
 	});
 }
