@@ -51,7 +51,7 @@ function getPostDataAsync(href, sendResponse)
 					let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
 					memzero(HMAC256Hash);
 
-					let client = base64url_encode([
+					let client = base64url_encode(localSodium, [
 						"ver=1",
 						"cmd=ident",
 						"idk=" + localSodium.to_base64(SitePublicKey),
@@ -60,7 +60,7 @@ function getPostDataAsync(href, sendResponse)
 					].join("\r\n"));
 					memzero(SitePublicKey);
 
-					let server = base64url_encode(href);
+					let server = base64url_encode(localSodium, href);
 					let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
 					memzero(SitePrivateKey);
 
@@ -96,43 +96,43 @@ function importIdentity(ti, rescueCode, sendResponse)
 {
 	//FIXME: check that length of textual identity corresponds to a valid type2 or type2+type3 block
 	// ... the following pre-calculated fixed character counts may be used: 107, 185, 232, 278, 325 for the five possible textual identity lengths (spaces and newlines removed).
-	let validationResult = validateTextualIdentity(ti); //will also return success == true if the textual identity is only partly entered!
-	if (validationResult.success)
-	{
-		let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
-		//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
-		let blockSize = ab2int(identityData.slice(0, 2));
-		let blockType = ab2int(identityData.slice(2, 4));
-		if (blockType == 2)
+	//let validationResult = validateTextualIdentity(ti); //will also return success == true if the textual identity is only partly entered!
+	validateTextualIdentity(ti).then(validationResult => {  //will also return success == true if the textual identity is only partly entered!
+		if (validationResult.success)
 		{
-			textualIdentity = ti;
-			chrome.storage.local.set({"textualIdentity": ti});
-			let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
-			//console.log("extractedBlock2", extractedBlock2);
-			//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
-			enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter, (step, max) => {
-				chrome.runtime.sendMessage({'action': 'enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
-			}).then(enscryptedPwd => {
-				//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
-				aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
-					let IUK = new Uint8Array(decrypted);
-					//console.log("IUK", IUK);
-					IMK = enhash(localSodium, IUK);
-					//FIXME: encrypt IMK with password
-					chrome.storage.local.set({"IMK": Array.from(IMK)});
-					sendResponse({"success": true, "name": ab2hex(localSodium.crypto_hash_sha256(IMK)).substr(0,8)});
-				}).catch(err => {
-					sendResponse({"success": false, "errorCode": "ERRII002"});
+			let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
+			//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
+			let blockSize = ab2int(identityData.slice(0, 2));
+			let blockType = ab2int(identityData.slice(2, 4));
+			if (blockType == 2)
+			{
+				textualIdentity = ti;
+				chrome.storage.local.set({"textualIdentity": ti});
+				let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
+				//console.log("extractedBlock2", extractedBlock2);
+				//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
+				enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter, (step, max) => {
+					chrome.runtime.sendMessage({'action': 'enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
+				}).then(enscryptedPwd => {
+					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
+					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
+						let IUK = new Uint8Array(decrypted);
+						//console.log("IUK", IUK);
+						IMK = enhash(localSodium, IUK);
+						//FIXME: encrypt IMK with password
+						chrome.storage.local.set({"IMK": Array.from(IMK)});
+						sendResponse({"success": true, "name": ab2hex(localSodium.crypto_hash_sha256(IMK)).substr(0,8)});
+					}).catch(err => {
+						sendResponse({"success": false, "errorCode": "ERRII002"});
+					});
 				});
-			});
+			}
+			else
+				sendResponse({"success": false, "errorCode": "ERRII001"});
 		}
 		else
-			return "ERRII001";
-	}
-	else
-	{
-		return "ERRII000";
-	}
+			sendResponse({"success": false, "errorCode": "ERRII000"});
+	});
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -174,11 +174,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 	else if (request.action === "importIdentity")
 	{
-		let errorCode = importIdentity(request.textualIdentity, request.rescueCode, sendResponse);
-		if (errorCode)
-			sendResponse({"success": false, "errorCode": errorCode });
-		else
-			return true; // so importIdentity() can use sendResponse() asynchronously
+		importIdentity(request.textualIdentity, request.rescueCode, sendResponse);
+		return true; // so importIdentity() can use sendResponse() asynchronously
 	}
 	else
 		console.warn("background request action not recognised", request.action);

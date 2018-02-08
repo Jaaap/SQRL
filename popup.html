@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>SQRL</title>
 <!--link rel="stylesheet" href="chrome://browser/content/extension.css"/-->
-<script src="sodium-asmjs.js" async></script>
 <script src="bn.js" async></script>
 <script src="jQueryLight.js" defer></script>
 <script src="utils.js" defer></script>
@@ -50,8 +49,8 @@ div>input[type="radio"]:checked+label { background-color: #FFF; color: var(--sqr
 div>input[type="radio"]~div { position: absolute; top: 0; left: 200px; right: 0; bottom: 0; border: 1px solid #FFF; display: none; padding: 8px; border-bottom-right-radius: 2px }
 div>input[type="radio"]:checked~div { display: block; }
 
-button.success::after { content: " ✅"; }
-button.failure::after { content: " ❌"; }
+button.success::after,label.success::after { content: " ✅"; }
+button.failure::after,label.failure::after { content: " ❌"; }
 </style>
 </head>
 <body>

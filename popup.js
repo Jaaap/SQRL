@@ -13,7 +13,7 @@ function onImportFormSubmit(evt)
 	let elems = this.elements;
 	chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value }, result => {
 		console.log("onImportFormSubmit", result);
-		elems[elems.length - 1].className = result.success ? "success" : "failure";
+		elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
 		if (result.success)
 		{
 			elems.identity.value = "";
@@ -52,9 +52,11 @@ function onEraseidentityFormSubmit(evt)
 function onTextualIdentityKeyUp(evt)
 {
 	let ta = evt.target;
-	let validationData = validateTextualIdentity(ta.value);
-	$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
-	$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
+	//let validationData = validateTextualIdentity(ta.value);
+	validateTextualIdentity(ta.value).then(validationData => {;
+		$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
+		$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
+	});
 }
 function setPopupState()
 {

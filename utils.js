@@ -137,7 +137,7 @@ function TextualIdentityValidationError(rowNr, colNr, msg)
 	this.colNr = colNr;
 	this.msg = msg;
 }
-function validateTextualIdentity(ti)
+async function validateTextualIdentity(ti)
 {
 	let lines = ti.split(/\r?\n/);
 	let base56invalidsCharsRe = new RegExp(`([^${base56chars}])`);
@@ -165,7 +165,8 @@ function validateTextualIdentity(ti)
 			let verificationChar = lineChars.slice(-1);
 			let lineCharInts = str2ab(lineChars);
 			lineCharInts[lineCharInts.length - 1] = lIndex;
-			let sha256 = sodium.crypto_hash_sha256(lineCharInts).reverse();
+			//let sha256 = sodium.crypto_hash_sha256(lineCharInts).reverse();
+			let sha256 = new Uint8Array(await crypto.subtle.digest('SHA-256', lineCharInts)).reverse();
 			let sha256bn = new BN(sha256);
 			memzero(sha256);
 			let verificationInt = sha256bn.modn(56);
@@ -179,7 +180,7 @@ function validateTextualIdentity(ti)
 
 
 
-function base64url_encode(str)
+function base64url_encode(sodium, str)
 {
 	return sodium.to_base64(sodium.from_string(str), sodium.base64_variants.URLSAFE_NO_PADDING);
 }
