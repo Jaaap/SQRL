@@ -55,20 +55,21 @@ button.failure::after,label.failure::after { content: " ❌"; }
 </head>
 <body>
 <main>
-<h1><img src="../icons/256.png"/>SQRL<span id="identityhash"></span></h1>
+<h1><img src="icons/256.png"/>SQRL<span id="identityhash"></span></h1>
 <form id="passwd" class="notyet">
 	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><label><input type="checkbox" name="savepwd"/>Remember</label>
 </form>
 <div>
 	<div><input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label><div>
 		<form id="create" class="notyet">
-			<label><span></span><button type="button">Generate new Identity (randomize)</button></label><br/>
+			<label><span></span><button type="button">Generate new Identity</button></label><br/>
+			<label><span></span><progress value="0"></progress></label><br/>
 			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
 			<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
 			<label><span></span>Write this code down on paper</label><br/>
 			<br/>
 			<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode"/></label><br/>
-			<label><span></span><button>Save</button></label><br/>
+			<label><span></span><button>Save &amp; Use this Identity</button></label><br/>
 		</form>
 	</div></div>
 
