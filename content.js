@@ -29,6 +29,7 @@ function base64url_decode(data)
 
 function ajax(url, postData, callback)
 {
+console.log("content.ajax", url, postData);
 	let req = new XMLHttpRequest();
 	req.addEventListener("load", evt => {
 		callback(req.responseText);
@@ -44,14 +45,15 @@ function ajax(url, postData, callback)
 
 function onAjaxCallback(responseText)
 {
-	//console.log("onAjaxCallback", responseText);
+console.log("onAjaxCallback", responseText);
 	let responseLines = base64url_decode(responseText).split("\r\n");
-	//console.log("onAjaxCallback", responseLines);
+console.log("onAjaxCallback", responseLines);
 	let foundUrl = false;
 	responseLines.forEach(line => {
 		if (line.startsWith("url="))
 		{
-			document.location.href = line.substring(4);
+console.log("onAjaxCallback", "jumping to", line.substring(4));
+			window.location.href = line.substring(4);
 			foundUrl = true;
 		}
 	});

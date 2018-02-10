@@ -33,6 +33,7 @@ function parseBlockType2(data)
 }
 function getPostDataAsync(href, sendResponse)
 {
+console.log("backgroud.getPostDataAsync", href);
 	if (typeof href == "string" && href.startsWith("sqrl://"))
 	{
 		let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
