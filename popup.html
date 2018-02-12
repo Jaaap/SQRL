@@ -61,8 +61,8 @@ button.failure::after,label.failure::after { content: " ❌"; }
 </form>
 <div>
 	<div><input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label><div>
-		<form id="create" class="notyet">
-			<label><span></span><button type="button">Generate new Identity</button></label><br/>
+		<form id="create">
+			<label><span></span><button type="button" id="generateNewIdentity">Generate new Identity</button></label><br/>
 			<label><span></span><progress value="0"></progress></label><br/>
 			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
 			<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>

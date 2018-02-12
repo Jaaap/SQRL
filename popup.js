@@ -1,6 +1,18 @@
 {
 "use strict";
 
+function onGenerateNewIdentityClick(evt)
+{
+	console.log(this, evt);
+	chrome.runtime.sendMessage({'action': 'createIdentity' }, result => {
+		console.log("onGenerateNewIdentityClick", result);
+		if (result.success)
+		{
+			$('form#create textarea[name="identity"]').val(result.textualIdentity);
+			$('form#create input[name="rescuecode"]').val(result.rescueCode);
+		}
+	});
+}
 function onCreateFormSubmit(evt)
 {
 	evt.preventDefault();
@@ -75,6 +87,7 @@ function setPopupState()
 function init()
 {
 	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
+	$('button#generateNewIdentity').click(onGenerateNewIdentityClick);
 	$('form#create').submit(onCreateFormSubmit);
 	$('form#import').submit(onImportFormSubmit);
 	$('form#setpassword').submit(onSetpasswordFormSubmit);
@@ -92,7 +105,11 @@ function init()
 if ("chrome" in window)
 {
 	chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-		if (request.action == "enscryptUpdate")
+		if (request.action == "createIdentity.enscryptUpdate")
+		{
+			$('form#create progress').val(request.step).attr("max", request.max);
+		}
+		else if (request.action == "importIdentity.enscryptUpdate")
 		{
 			$('form#import progress').val(request.step).attr("max", request.max);
 		}

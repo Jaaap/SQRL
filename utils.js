@@ -15,6 +15,20 @@ function memzero(e)
 	else
 		throw new Error("Only Uint8Array, Array and BN instances can be wiped");
 }
+function zeropad(nmbr, len)
+{
+	if (typeof nmbr == "number")
+		nmbr = "" + nmbr;
+	if (typeof nmbr != "string")
+		throw new Error('Arument 1 "nmbr" should be a string or a number');
+	if (typeof len != "number")
+		throw new Error('Arument 2 "len" should be a number');
+	if (len < 0)
+		throw new Error('Arument 2 "len" should be positive');
+	if (len < nmbr.length)
+		throw new Error('Arument 2 "len" should be greater than the length of argument 1 "nmbr"');
+	return new Array(len + 1 - nmbr.length).join("0") + nmbr;
+}
 function str2ab(str) //string to arraybuffer (Uint8Array)
 {
 	return new TextEncoder("utf-8").encode(str);
@@ -104,7 +118,15 @@ function enhash(sodium, input)
 		throw new Error('Argument 1 "input" should be a Uint8Array of length 32');
 }
 
+function aesGcmEncrypt(data, additionalData, password, iv)
+{
+	return aesGcmCrypt(true, data, additionalData, password, iv);
+}
 function aesGcmDecrypt(data, additionalData, password, iv)
+{
+	return aesGcmCrypt(false, data, additionalData, password, iv);
+}
+function aesGcmCrypt(isEncrypt, data, additionalData, password, iv)
 {
 	if (data.constructor === Uint8Array && data.length > 0)
 	{
@@ -114,9 +136,18 @@ function aesGcmDecrypt(data, additionalData, password, iv)
 			{
 				if (iv.constructor === Uint8Array && iv.length === 12)
 				{
-					return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["decrypt"]).then(key =>
-						crypto.subtle.decrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData }, key, data)
-					);
+					if (isEncrypt)
+					{
+						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["encrypt"]).then(key =>
+							crypto.subtle.encrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData }, key, data)
+						);
+					}
+					else
+					{
+						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["decrypt"]).then(key =>
+							crypto.subtle.decrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData }, key, data)
+						);
+					}
 				}
 				else
 					throw new Error('Argument 4 "iv" should be a Uint8Array of length 16');

@@ -93,6 +93,38 @@ console.log("backgroud.getPostDataAsync", href);
 		return true;
 	}
 }
+function createIdentity(sendResponse)
+{
+	let newIUK = localSodium.randombytes_buf(32);
+	let newIMK = enhash(localSodium, newIUK);
+	let enscryptSalt = localSodium.randombytes_buf(16);
+	let enscryptIter = 120;
+	let enscryptLogN = 9;
+	let newRescueCode = [];
+	let additionalData = new Uint8Array(25);
+	additionalData.set([73, 0, 2, 0], 0);
+	additionalData.set(enscryptSalt, 4);
+	additionalData.set([enscryptLogN, 0, 0, enscryptIter], 20);//FIXME: only works when enscryptIter < 256
+	for (let i = 0; i < 6; i++)
+	{
+		newRescueCode.push(zeropad(sodium.randombytes_uniform(10000), 4));
+	}
+	//FIXME: USE enscryptLogN (is now hardcoded to 9, for N = 512)
+	enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(newRescueCode.join("")), enscryptSalt, enscryptIter, (step, max) => {
+		chrome.runtime.sendMessage({'action': 'createIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
+	}).then(enscryptedNewRescueCode => {
+		console.log("createIdentity.enscryptedPwd", JSON.stringify(Array.from(enscryptedNewRescueCode)));
+		aesGcmEncrypt(newIUK, additionalData, enscryptedNewRescueCode, new Uint8Array(12)).then(encryptedNewIUKandVerification => {
+			let newTextualIdentity = null;//FIXME
+			//FIXME: use encryptedNewIUKandVerification to create textualIdentity
+			sendResponse({"success": true, "textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-")});
+		}).catch(err => {
+			sendResponse({"success": false, "errorCode": "ERRCI002"});
+		});
+	}).catch(err => {
+		sendResponse({"success": false, "errorCode": "ERRCI001"});
+	});
+}
 function importIdentity(ti, rescueCode, sendResponse)
 {
 	//FIXME: check that length of textual identity corresponds to a valid type2 or type2+type3 block
@@ -112,8 +144,9 @@ function importIdentity(ti, rescueCode, sendResponse)
 				let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
 				//console.log("extractedBlock2", extractedBlock2);
 				//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
+				//FIXME: USE extractedBlock2.enscryptLogN (is now hardcoded to 9, for N = 512)
 				enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter, (step, max) => {
-					chrome.runtime.sendMessage({'action': 'enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
+					chrome.runtime.sendMessage({'action': 'importIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
 				}).then(enscryptedPwd => {
 					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
 					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
@@ -171,6 +204,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		chrome.storage.local.remove(["IMK","identityDataType2"], () => {
 			sendResponse(chrome.runtime.lastError);
 		});
+		return true;
+	}
+	else if (request.action === "createIdentity")
+	{
+		createIdentity(sendResponse);
 		return true;
 	}
 	else if (request.action === "importIdentity")
