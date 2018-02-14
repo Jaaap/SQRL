@@ -12,28 +12,9 @@ window.sodium = { onload: sod => {
 
 
 
-function parseBlockType2(data)
-{
-	if (data.constructor === Uint8Array && data.length === 73)
-	{
-		let blockType = ab2int(data.slice(2, 4));
-		if (blockType == 2)
-			return {
-				"enscryptSalt": data.slice(4, 20),
-				"enscryptLogN": ab2int(data.slice(20, 21)),
-				"enscryptIter": ab2int(data.slice(21, 25)),
-				"dataToDecrypt": data.slice(25, 73),
-				"additionalData": data.slice(0, 25)
-			}
-		else
-			throw new Error('Argument 1 "data" should be a type 2 identity data block');
-	}
-	else
-		throw new Error('Argument 1 "data" should be a Uint8Array of length 73');
-}
 function getPostDataAsync(href, sendResponse)
 {
-console.log("backgroud.getPostDataAsync", href);
+	console.log("backgroud.getPostDataAsync", href);
 	if (typeof href == "string" && href.startsWith("sqrl://"))
 	{
 		let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
@@ -104,20 +85,26 @@ function createIdentity(sendResponse)
 	let additionalData = new Uint8Array(25);
 	additionalData.set([73, 0, 2, 0], 0);
 	additionalData.set(enscryptSalt, 4);
-	additionalData.set([enscryptLogN, 0, 0, enscryptIter], 20);//FIXME: only works when enscryptIter < 256
+	additionalData.set([enscryptLogN, enscryptIter, 0, 0, 0], 20);//FIXME: only works when enscryptIter < 256
 	for (let i = 0; i < 6; i++)
 	{
 		newRescueCode.push(zeropad(sodium.randombytes_uniform(10000), 4));
 	}
-	//FIXME: USE enscryptLogN (is now hardcoded to 9, for N = 512)
-	enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(newRescueCode.join("")), enscryptSalt, enscryptIter, (step, max) => {
+	enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(newRescueCode.join("")), enscryptSalt, enscryptLogN, enscryptIter, (step, max) => {
 		chrome.runtime.sendMessage({'action': 'createIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
 	}).then(enscryptedNewRescueCode => {
-		console.log("createIdentity.enscryptedPwd", JSON.stringify(Array.from(enscryptedNewRescueCode)));
-		aesGcmEncrypt(newIUK, additionalData, enscryptedNewRescueCode, new Uint8Array(12)).then(encryptedNewIUKandVerification => {
-			let newTextualIdentity = null;//FIXME
-			//FIXME: use encryptedNewIUKandVerification to create textualIdentity
-			sendResponse({"success": true, "textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-")});
+		aesGcmEncrypt(newIUK, additionalData, enscryptedNewRescueCode, new Uint8Array(12)).then(dataToDecrypt => {
+			try {
+				serializeBlock2(dataToDecrypt, additionalData).then(newTextualIdentity => {
+					sendResponse({"success": true, "textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-"), "enscryptedRescueCode": JSON.stringify(Array.from(enscryptedNewRescueCode))});
+				}).catch(err => {
+					sendResponse({"success": false, "errorCode": "ERRCI004"});
+				});
+			}
+			catch (err)
+			{
+				sendResponse({"success": false, "errorCode": "ERRCI003"});
+			}
 		}).catch(err => {
 			sendResponse({"success": false, "errorCode": "ERRCI002"});
 		});
@@ -125,29 +112,21 @@ function createIdentity(sendResponse)
 		sendResponse({"success": false, "errorCode": "ERRCI001"});
 	});
 }
-function importIdentity(ti, rescueCode, sendResponse)
+function importIdentity(ti, rescueCode, enscryptedRescueCode, sendResponse)
 {
-	//FIXME: check that length of textual identity corresponds to a valid type2 or type2+type3 block
-	// ... the following pre-calculated fixed character counts may be used: 107, 185, 232, 278, 325 for the five possible textual identity lengths (spaces and newlines removed).
-	//let validationResult = validateTextualIdentity(ti); //will also return success == true if the textual identity is only partly entered!
 	validateTextualIdentity(ti).then(validationResult => {  //will also return success == true if the textual identity is only partly entered!
 		if (validationResult.success)
 		{
-			let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
-			//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
-			let blockSize = ab2int(identityData.slice(0, 2));
-			let blockType = ab2int(identityData.slice(2, 4));
-			if (blockType == 2)
+			try
 			{
+				let extractedBlock2 = parseBlockType2(ti);
 				textualIdentity = ti;
 				chrome.storage.local.set({"textualIdentity": ti});
-				let extractedBlock2 = parseBlockType2(identityData.slice(0, blockSize));
-				//console.log("extractedBlock2", extractedBlock2);
 				//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
-				//FIXME: USE extractedBlock2.enscryptLogN (is now hardcoded to 9, for N = 512)
-				enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptIter, (step, max) => {
+				let prms = enscryptedRescueCode == null ?  enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptLogN, extractedBlock2.enscryptIter, (step, max) => {
 					chrome.runtime.sendMessage({'action': 'importIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
-				}).then(enscryptedPwd => {
+				}) : new Promise(resolve => resolve(enscryptedRescueCode));
+				prms.then(enscryptedPwd => {
 					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
 					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
 						let IUK = new Uint8Array(decrypted);
@@ -157,15 +136,21 @@ function importIdentity(ti, rescueCode, sendResponse)
 						chrome.storage.local.set({"IMK": Array.from(IMK)});
 						sendResponse({"success": true, "name": ab2hex(localSodium.crypto_hash_sha256(IMK)).substr(0,8)});
 					}).catch(err => {
-						sendResponse({"success": false, "errorCode": "ERRII002"});
+						sendResponse({"success": false, "errorCode": "ERRII004"});
 					});
+				}).catch(err => {
+					sendResponse({"success": false, "errorCode": "ERRII003"});
 				});
 			}
-			else
-				sendResponse({"success": false, "errorCode": "ERRII001"});
+			catch(err)
+			{
+				sendResponse({"success": false, "errorCode": "ERRII002"});
+			}
 		}
 		else
-			sendResponse({"success": false, "errorCode": "ERRII000"});
+			sendResponse({"success": false, "errorCode": "ERRII001"});
+	}).catch(err => {
+		sendResponse({"success": false, "errorCode": "ERRII000"});
 	});
 }
 
@@ -176,11 +161,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		let hasCalledSendresponse = getPostDataAsync(request.href, sendResponse);
 		if (!hasCalledSendresponse)
 			return true; // make asynchronous
-		/*
-		let result = getPostData(request.href);
-		sendResponse(result);
-		chrome.browserAction.setBadgeText({"text": result.success ? "" : "Error", "tabId": sender.tab.id});
-		*/
 	}
 	/* for popup.js */
 	//FIXME: find a way to make sure these requests are not coming from content.js but from popup.js
@@ -213,8 +193,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 	else if (request.action === "importIdentity")
 	{
-		importIdentity(request.textualIdentity, request.rescueCode, sendResponse);
-		return true; // so importIdentity() can use sendResponse() asynchronously
+		importIdentity(request.textualIdentity, request.rescueCode, request.enscryptedRescueCode, sendResponse);
+		return true;
 	}
 	else
 		console.warn("background request action not recognised", request.action);

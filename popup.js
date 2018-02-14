@@ -5,11 +5,12 @@ function onGenerateNewIdentityClick(evt)
 {
 	console.log(this, evt);
 	chrome.runtime.sendMessage({'action': 'createIdentity' }, result => {
-		console.log("onGenerateNewIdentityClick", result);
+		//console.log("onGenerateNewIdentityClick", result);
 		if (result.success)
 		{
 			$('form#create textarea[name="identity"]').val(result.textualIdentity);
 			$('form#create input[name="rescuecode"]').val(result.rescueCode);
+			$('form#create input[name="enscryptedrescuecode"]').val(result.enscryptedRescueCode);
 		}
 	});
 }
@@ -17,6 +18,24 @@ function onCreateFormSubmit(evt)
 {
 	evt.preventDefault();
 	console.log(this, evt);
+	let elems = this.elements;
+	if (elems.verifyrescuecode.value === elems.rescuecode.value)
+	{
+		elems.verifyrescuecode.setCustomValidity("");
+		chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value, "enscryptedRescueCode": new Uint8Array(JSON.parse(elems.enscryptedrescuecode.value)) }, result => {
+			elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
+			if (result.success)
+			{
+				elems.identity.value = "";
+				elems.rescuecode.value = "";
+				elems.verifyrescuecode.value = "";
+				elems.enscryptedrescuecode.value = "";
+				setPopupState();
+			}
+		});
+	}
+	else
+		elems.verifyrescuecode.setCustomValidity("Rescue Code mismatch.\nFirst write the Rescue Code down on paper, then enter it here.");
 }
 function onImportFormSubmit(evt)
 {
@@ -60,7 +79,25 @@ function onEraseidentityFormSubmit(evt)
 		setPopupState();
 	});
 }
-
+/*
+function onRescuecodeRevealClick(evt)
+{
+	let $input = $('form#create input[name="rescuecode"]');
+	$input.attr("type", $input.attr("type" == "password" ? "text" : "password"));
+}
+*/
+function onVerifyrescuecodeFocus(evt)
+{
+	$('form#create input[name="rescuecode"]').attr("type", "password");
+}
+function onVerifyrescuecodeBlur(evt)
+{
+	$('form#create input[name="rescuecode"]').attr("type", "text");
+}
+function onVerifyrescuecodeKeyUp(evt)
+{
+	this.setCustomValidity("");
+}
 function onTextualIdentityKeyUp(evt)
 {
 	let ta = evt.target;
@@ -94,6 +131,8 @@ function init()
 	$('form#changepassword').submit(onChangepasswordFormSubmit);
 	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
 	$('form#eraseidentity').submit(onEraseidentityFormSubmit);
+	//$('form#create input[name="rescuecode"]+b').click(onRescuecodeRevealClick);
+	$('form#create input[name="verifyrescuecode"]').focus(onVerifyrescuecodeFocus).blur(onVerifyrescuecodeBlur).keyup(onVerifyrescuecodeKeyUp);
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 	if ("chrome" in window)
 	{

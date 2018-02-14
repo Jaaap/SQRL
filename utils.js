@@ -84,17 +84,19 @@ function sleep(ms)
 }
 
 //uses https://github.com/tonyg/js-scrypt/ or sodium
-async function enscrypt(scrypt, pwd, salt, iterations, callback)
+async function enscrypt(scrypt, pwd, salt, logN, iterations, callback)
 {
+//console.log("enscrypt", pwd, salt, logN, iterations);
 	if (typeof callback != "function")
 		callback = function(){};
-	let result = scrypt(pwd, salt, 512, 256, 1, 32);
+	let N = Math.pow(2, logN);
+	let result = scrypt(pwd, salt, N, 256, 1, 32);
 	let xorresult = new Uint8Array(result);
 	for (let i = 1; i < iterations; i++)
 	{
 		callback(i, iterations);
 		await sleep(1); //sleep 1ms to allow UI update
-		result = scrypt(pwd, result, 512, 256, 1, 32);
+		result = scrypt(pwd, result, N, 256, 1, 32);
 		ui8aXOR(xorresult, result);//result of XOR is written back into xorresult
 	}
 	memzero(result);
@@ -139,24 +141,24 @@ function aesGcmCrypt(isEncrypt, data, additionalData, password, iv)
 					if (isEncrypt)
 					{
 						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["encrypt"]).then(key =>
-							crypto.subtle.encrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData }, key, data)
+							crypto.subtle.encrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData, "tagLength": 128 }, key, data)
 						);
 					}
 					else
 					{
 						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["decrypt"]).then(key =>
-							crypto.subtle.decrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData }, key, data)
+							crypto.subtle.decrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData, "tagLength": 128 }, key, data)
 						);
 					}
 				}
 				else
-					throw new Error('Argument 4 "iv" should be a Uint8Array of length 16');
+					throw new Error('Argument 4 "iv" should be a Uint8Array of length 12');
 			}
 			else
 				throw new Error('Argument 3 "password" should be a Uint8Array of length 32');
 		}
 		else
-			throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
+			throw new Error('Argument 2 "additionalData" should be a non-empty Uint8Array');
 	}
 	else
 		throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
@@ -193,22 +195,85 @@ async function validateTextualIdentity(ti)
 		if (line.length == 24 || (lIndex == 5 && line.length == 8)) //FIXME: this only works for type2 data, user can enter type2 + type3 data.
 		{
 			let lineChars = blocks.join("");
-			let verificationChar = lineChars.slice(-1);
-			let lineCharInts = str2ab(lineChars);
-			lineCharInts[lineCharInts.length - 1] = lIndex;
-			//let sha256 = sodium.crypto_hash_sha256(lineCharInts).reverse();
-			let sha256 = new Uint8Array(await crypto.subtle.digest('SHA-256', lineCharInts)).reverse();
-			let sha256bn = new BN(sha256);
-			memzero(sha256);
-			let verificationInt = sha256bn.modn(56);
-			memzero(sha256bn);
-			if (verificationChar !== base56chars[verificationInt])
+			let lastChar = lineChars.slice(-1);
+			if (lastChar !== await getVerificationChar(lineChars, lIndex))
 				return { "success": false, "lineNr": lIndex, "message": `Verification character mismatch on line ${lIndex + 1}.\nOne or more of the characters on this line is wrong.` };
 		}
 	}
 	return { "success": true, "lineNr": lines.length };
 }
-
+async function getVerificationChar(lineChars, lineIndex)
+{
+	let lineCharInts = str2ab(lineChars);
+	lineCharInts[lineCharInts.length - 1] = lineIndex;
+	let sha256 = new Uint8Array(await crypto.subtle.digest('SHA-256', lineCharInts)).reverse();
+	let sha256bn = new BN(sha256);
+	memzero(sha256);
+	let verificationInt = sha256bn.modn(56);
+	memzero(sha256bn);
+//console.log("getVerificationChar", lineChars, lineIndex, base56chars[verificationInt]);
+	return base56chars[verificationInt];
+}
+function parseBlockType2(ti)
+{
+	let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
+	if ([73, 127, 159, 191, 223].indexOf(identityData.length) > -1)
+	{
+		//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
+		let blockSize = ab2int(identityData.slice(0, 2));
+		let blockType = ab2int(identityData.slice(2, 4));
+		if (blockType == 2 && blockSize == 73)
+		{
+			let data = identityData.slice(0, blockSize);
+			return {
+				"enscryptSalt": data.slice(4, 20),
+				"enscryptLogN": ab2int(data.slice(20, 21)),
+				"enscryptIter": ab2int(data.slice(21, 25)),
+				"dataToDecrypt": data.slice(25, 73),
+				"additionalData": data.slice(0, 25)
+			};
+		}
+		else
+			throw new Error('Argument 1 "ti" should start with a type2 data block of length 73');
+	}
+	else
+		throw new Error('base56decoded length of first argument "ti" should be 73, 127, 159, 191 or 223');
+}
+function serializeBlock2(dataToDecrypt, additionalData)
+{
+	let data = new Uint8Array(73);
+	if (additionalData instanceof ArrayBuffer)
+		additionalData = new Uint8Array(additionalData);
+	if (dataToDecrypt instanceof ArrayBuffer)
+		dataToDecrypt = new Uint8Array(dataToDecrypt);
+	if (dataToDecrypt.constructor === Uint8Array && dataToDecrypt.length === 48)
+	{
+		if (additionalData.constructor === Uint8Array && additionalData.length === 25)
+		{
+			data.set(additionalData, 0);
+			data.set(dataToDecrypt, 25);
+			data.reverse();
+			let ti = base56encode(data);
+			let promises = [];
+			for (let i = 0; 19 * i < ti.length; i++)
+			{
+				promises.push(getVerificationChar(ti.substr(19 * i, 19) + " ", i));
+			}
+			return Promise.all(promises).then(verificationChars => {
+				let result = [];
+				for (let i = 0; 19 * i < ti.length; i++)
+				{
+					result[i] = (ti.substr(19 * i, 19) + verificationChars[i]).replace(/(.{4})\B/g, "$1 ");
+				}
+				return result.join("\n");
+			});
+		}
+		else
+			throw new Error('Argument 2 "additionalData" should be a Uint8Array of length 25');
+	}
+	else
+		throw new Error('Argument 1 "dataToDecrypt" should be a Uint8Array of length 48');
+}
 
 
 function base64url_encode(sodium, str)
@@ -221,7 +286,7 @@ function base56encode(i)
 	let bi;
 	if (i instanceof BN)
 		bi = i;
-	else if (typeof i == "string")
+	else if (typeof i == "string" || i.constructor === Uint8Array)
 		bi = new BN(i);
 	else if (typeof i == "number")
 	{

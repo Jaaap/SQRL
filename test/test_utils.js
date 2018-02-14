@@ -4,6 +4,97 @@ var expect = chai.expect;
 chai.config.truncateThreshold = 0;
 window.sodium = { onload: function(sodium) {
 	describe("utils", function() {
+		describe("memzero", function() {
+			it("", function() {
+				let ui8a = new Uint8Array(0);
+				memzero(ui8a);
+				expect(ui8a).to.deep.equal(new Uint8Array(0));
+				ui8a = new Uint8Array(32);
+				memzero(ui8a);
+				expect(ui8a).to.deep.equal(new Uint8Array(32));
+				ui8a = new Uint8Array([1,255,0,55]);
+				memzero(ui8a);
+				expect(ui8a).to.deep.equal(new Uint8Array(4));
+			});
+		});
+		describe("textualIdentity", function() {
+			let ti = `BAU2 em2x mFMW tHyT EngP
+Pk8W SDij Dibe gxEN HfEd
+duce Cqpc 2Fze 6hrz 2r52
+bJ64 d3q2 2AHT eSas 7MkS
+Umut sFuc iQmx xt6c ReQS
+gGXb Z5B`;
+			//let rescueCode = "6641-6579-7315-9794-5864-5862";
+			it("transcode", function(done) {
+				let extractedBlock2 = parseBlockType2(ti);
+				serializeBlock2(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData).then(newTextualIdentity => {
+					expect(newTextualIdentity).to.equal(ti);
+					done();
+				});
+			});
+		});
+		describe("base56", function() {
+			it("encode", function() {
+				expect(function(){ base56encode(-1); }).to.throw('base56encode: ERROR. Argument 1 "i" should be positive');
+				expect(base56encode(0)).to.equal("2");
+				expect(base56encode(1)).to.equal("3");
+				expect(base56encode(55)).to.equal("z");
+				expect(base56encode(56)).to.equal("23");
+				expect(base56encode("56")).to.equal("23");
+				expect(base56encode("00")).to.equal("2");
+				expect(base56encode(Number.MAX_SAFE_INTEGER)).to.equal("ZeAxbxE9f3");
+				expect(base56encode(new BN(Number.MAX_SAFE_INTEGER))).to.equal("ZeAxbxE9f3");
+			});
+			it("decode", function() {
+				expect(base56decode("2")).to.deep.equal(new BN(0));
+				expect(base56decode("3")).to.deep.equal(new BN(1));
+				expect(base56decode("z")).to.deep.equal(new BN(55));
+				expect(base56decode("23")).to.deep.equal(new BN(56));
+				expect(base56decode("ZeAxbxE9f3")).to.deep.equal(new BN(Number.MAX_SAFE_INTEGER));
+			});
+			it("transcode", function() {
+				for (let i = 0; i < 10000; i++)
+				{
+					expect(base56decode(base56encode(i)).toNumber()).to.equal(i);
+					let squared = i * i; //don't go over Number.MAX_SAFE_INTEGER!
+					expect(base56decode(base56encode(squared)).toNumber()).to.equal(squared);
+				}
+			});
+		});
+		describe("enscrypt", function() {
+			scrypt_module_factory(function(scrypt){
+				it("password 1i tonyg", function(done) {
+					enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 9, 1).then(enscrypted => {
+						expect(ab2hex(enscrypted)).to.equal("532bcc911c16df81996258158de460b2e59d9a86531d59661da5fbeb69f7cd54"); });
+					done();
+				});
+				it("password 2i tonyg", function(done) {
+					enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 9, 2).then(enscrypted => {
+						expect(ab2hex(enscrypted)).to.equal("2d516e99bceb1f49e4dc02217ffc6bac28ea1a9b2d67c1dabd85185163ffe2de"); });
+					done();
+				});
+				it("password 3i tonyg", function(done) {
+					enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 9, 3).then(enscrypted => {
+						expect(ab2hex(enscrypted)).to.equal("7b1bebe5b2e4afc8d2520abbd6e4d7f1420b018477065577c5d684690198195d"); });
+					done();
+				});
+				it("password 1i sodium", function(done) {
+					enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 9, 1).then(enscrypted => {
+						expect(ab2hex(enscrypted)).to.equal("532bcc911c16df81996258158de460b2e59d9a86531d59661da5fbeb69f7cd54"); });
+					done();
+				});
+				it("password 2i sodium", function(done) {
+					enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 9, 2).then(enscrypted => {
+						expect(ab2hex(enscrypted)).to.equal("2d516e99bceb1f49e4dc02217ffc6bac28ea1a9b2d67c1dabd85185163ffe2de"); });
+					done();
+				});
+				it("password 3i sodium", function(done) {
+					enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 9, 3).then(enscrypted => {
+						expect(ab2hex(enscrypted)).to.equal("7b1bebe5b2e4afc8d2520abbd6e4d7f1420b018477065577c5d684690198195d"); });
+					done();
+				});
+			});
+		});
 		describe("enhash", function() {
 			it("", function() {
 				expect(enhash(sodium,new Uint8Array([0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1]))).to.deep.equal(new Uint8Array([88,39,250,77,43,65,118,56,180,228,97,43,203,195,57,234,137,117,78,100,0,32,1,45,143,229,187,237,124,161,209,95]));
@@ -1009,69 +1100,6 @@ expect(enhash(sodium,sodium.from_base64("U9Ke8ft1k49neQHMGnitWDcir9C7jeK7L3AumlI
 expect(enhash(sodium,sodium.from_base64("K1sqyRfPcyUHbBXQB9YU55XhgWAwL-TCkL3Ts9zU2WA"))).to.deep.equal(sodium.from_base64("eAjB4eniSQVIoItHGgotxHogQuR7ji97cMJ3soniZ9s"));
 expect(enhash(sodium,sodium.from_base64("kOoxknfxlX2PiSHjp4qafZEzVpmSo4TlZQFO1QyCJ9Y"))).to.deep.equal(sodium.from_base64("otu9a0jhP_ScJEjOJecq8drnZwvxo6-v8-SviZzJRsY"));
 
-			});
-		});
-		describe("memzero", function() {
-			it("", function() {
-				let ui8a = new Uint8Array(0);
-				memzero(ui8a);
-				expect(ui8a).to.deep.equal(new Uint8Array(0));
-				ui8a = new Uint8Array(32);
-				memzero(ui8a);
-				expect(ui8a).to.deep.equal(new Uint8Array(32));
-				ui8a = new Uint8Array([1,255,0,55]);
-				memzero(ui8a);
-				expect(ui8a).to.deep.equal(new Uint8Array(4));
-			});
-		});
-		describe("base56", function() {
-			it("encode", function() {
-				expect(function(){ base56encode(-1); }).to.throw('base56encode: ERROR. Argument 1 "i" should be positive');
-				expect(base56encode(0)).to.equal("2");
-				expect(base56encode(1)).to.equal("3");
-				expect(base56encode(55)).to.equal("z");
-				expect(base56encode(56)).to.equal("23");
-				expect(base56encode("56")).to.equal("23");
-				expect(base56encode("00")).to.equal("2");
-				expect(base56encode(Number.MAX_SAFE_INTEGER)).to.equal("ZeAxbxE9f3");
-				expect(base56encode(new BN(Number.MAX_SAFE_INTEGER))).to.equal("ZeAxbxE9f3");
-			});
-			it("decode", function() {
-				expect(base56decode("2")).to.deep.equal(new BN(0));
-				expect(base56decode("3")).to.deep.equal(new BN(1));
-				expect(base56decode("z")).to.deep.equal(new BN(55));
-				expect(base56decode("23")).to.deep.equal(new BN(56));
-				expect(base56decode("ZeAxbxE9f3")).to.deep.equal(new BN(Number.MAX_SAFE_INTEGER));
-			});
-			it("transcode", function() {
-				for (let i = 0; i < 10000; i++)
-				{
-					expect(base56decode(base56encode(i)).toNumber()).to.equal(i);
-					let squared = i * i; //don't go over Number.MAX_SAFE_INTEGER!
-					expect(base56decode(base56encode(squared)).toNumber()).to.equal(squared);
-				}
-			});
-		});
-		describe("enscrypt", function() {
-			scrypt_module_factory(function(scrypt){
-				it("password 1i tonyg", function() {
-enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 1).then(enscrypted => { expect(ab2hex(enscrypted)).to.equal("532bcc911c16df81996258158de460b2e59d9a86531d59661da5fbeb69f7cd54"); });
-				});
-				it("password 2i tonyg", function() {
-enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 2).then(enscrypted => { expect(ab2hex(enscrypted)).to.equal("2d516e99bceb1f49e4dc02217ffc6bac28ea1a9b2d67c1dabd85185163ffe2de"); });
-				});
-				it("password 3i tonyg", function() {
-enscrypt(scrypt.crypto_scrypt, scrypt.encode_utf8("password"), new Uint8Array(32), 3).then(enscrypted => { expect(ab2hex(enscrypted)).to.equal("7b1bebe5b2e4afc8d2520abbd6e4d7f1420b018477065577c5d684690198195d"); });
-				});
-				it("password 1i sodium", function() {
-enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 1).then(enscrypted => { expect(ab2hex(enscrypted)).to.equal("532bcc911c16df81996258158de460b2e59d9a86531d59661da5fbeb69f7cd54"); });
-				});
-				it("password 2i sodium", function() {
-enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 2).then(enscrypted => { expect(ab2hex(enscrypted)).to.equal("2d516e99bceb1f49e4dc02217ffc6bac28ea1a9b2d67c1dabd85185163ffe2de"); });
-				});
-				it("password 3i sodium", function() {
-enscrypt(sodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab("password"), new Uint8Array(32), 3).then(enscrypted => { expect(ab2hex(enscrypted)).to.equal("7b1bebe5b2e4afc8d2520abbd6e4d7f1420b018477065577c5d684690198195d"); });
-				});
 			});
 		});
 	});

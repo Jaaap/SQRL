@@ -66,9 +66,10 @@ button.failure::after,label.failure::after { content: " ❌"; }
 			<label><span></span><progress value="0"></progress></label><br/>
 			<label><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
 			<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
+			<input type="hidden" name="enscryptedrescuecode"/>
 			<label><span></span>Write this code down on paper</label><br/>
 			<br/>
-			<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode"/></label><br/>
+			<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}"/></label><br/>
 			<label><span></span><button>Save &amp; Use this Identity</button></label><br/>
 		</form>
 	</div></div>
@@ -76,7 +77,7 @@ button.failure::after,label.failure::after { content: " ❌"; }
 	<div><input type="radio" name="tab" value="2" id="tab2"/><label for="tab2">Import Identity</label><div>
 		<form id="import">
 			<label><span>Identity</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83"></textarea></label><b></b><br/>
-			<label><span>Rescue Code</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-){5}\d{4}"/></label><br/>
+			<label><span>Rescue Code</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){5}\d{4}"/></label><br/>
 			<label><span></span><progress value="0"></progress></label><br/>
 			<label><span></span><button>Import</button></label><br/>
 		</form>
