@@ -162,6 +162,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		if (!hasCalledSendresponse)
 			return true; // make asynchronous
 	}
+	else if (request.action === "content.error.ipmismatch")
+	{
+		if (sender.tab)
+			chrome.browserAction.setBadgeText ({ text: "E01", "tabId": sender.tab.id });
+	}
 	/* for popup.js */
 	//FIXME: find a way to make sure these requests are not coming from content.js but from popup.js
 	else if (request.action === "hasIdentity")

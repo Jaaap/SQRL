@@ -1,6 +1,22 @@
 {
 "use strict";
 
+function hasBitSet(btmp, mask)
+{
+	if (typeof btmp == "string")
+		btmp = 1 * btmp;
+	if (typeof btmp == "number")
+	{
+		if (typeof mask == "number")
+		{
+			return (btmp & mask) == mask;
+		}
+		else
+			throw new Error('Argument 1 "mask" should be a number');
+	}
+	else
+		throw new Error('Argument 1 "btmp" should be a string or a number');
+}
 function base64url_decode(data)
 {
 	if (data.length % 4 > 0)
@@ -43,21 +59,37 @@ console.log("content.ajax", url, postData);
 	req.send(postData);
 }
 
-function onAjaxCallback(responseText)
+function onAjaxCallback(responseText, anchor)
 {
 console.log("onAjaxCallback", responseText);
 	let responseLines = base64url_decode(responseText).split("\r\n");
 console.log("onAjaxCallback", responseLines);
-	let foundUrl = false;
-	responseLines.forEach(line => {
-		if (line.startsWith("url="))
+	let responseMap = {};
+	for (let line of responseLines)
+	{
+		let eqPos = line.indexOf("=");
+		if (eqPos > -1)
+			responseMap[line.substring(0,eqPos)] = line.substr(eqPos + 1);
+		else
+			console.warn("content.onAjaxCallback", "Expected equals sign in server response line");
+	}
+	if ("tif" in responseMap)
+	{
+		if (!hasBitSet(responseMap.tif, 4))
 		{
-console.log("onAjaxCallback", "jumping to", line.substring(4));
-			window.location.href = line.substring(4);
-			foundUrl = true;
+			chrome.runtime.sendMessage({"action": "content.error.ipmismatch"}, result => { });
+			anchor.style.cssText = "border: 2px solid red; background-color: #FFF; color: #000;";
+			anchor.appendChild(document.createTextNode("- IP Mismatch Detected -"));
+			// IP MISMATCH DETECTED
+			return;
 		}
-	});
-	if (!foundUrl)
+	}
+	else
+		console.error("onAjaxCallback", "No tif found in server response");
+
+	if ("url" in responseMap)
+		window.location.href = responseMap.url;
+	else
 		console.error("onAjaxCallback", "No url found in server response");
 }
 
@@ -73,7 +105,7 @@ function onAnchorClick(evt)
 		chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href}, result => {
 			//console.log(result);
 			if (result.success)
-				ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, onAjaxCallback);
+				ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, respTxt => { onAjaxCallback(respTxt, anchor); });
 		});
 	}
 }
