@@ -37,8 +37,9 @@ label>textarea { border: 0 none; height: 150px; line-height: 22px; }
 label.pwd>input { width: 380px; }
 label+b { padding: 0 0 0 8px; cursor: pointer; vertical-align: top; display: inline-block; width: 28px; line-height: 22px; }
 label+b:hover { text-shadow: 0 0 4px #FFF; }
-input.confirm[type="checkbox"]+button { display: none; }
-input.confirm[type="checkbox"]:checked+button { display: inline-block; color: red; font-weight: bold; }
+input.confirm[type="checkbox"]+button+button { display: none; }
+input.confirm[type="checkbox"]:checked+button { display: none; }
+input.confirm[type="checkbox"]:checked+button+button { display: inline-block; color: red; }
 
 main>div { position: absolute; top: 102px; left: 4px; width: 668px; height: 474px; }
 div>input[type="radio"] { display: none; }
@@ -117,6 +118,7 @@ button.failure::after,label.failure::after { content: " ❌"; }
 		<form id="eraseidentity">
 			<label><span>Erase all SQRL Identity Information from Browser Memory and Disk</span></label>
 			<input type="checkbox" name="eraseconfirm" class="confirm"/>
+			<button type="button" disabled>Erase SQRL Identity</button>
 			<button>Erase SQRL Identity</button>
 		</form>
 	</div></div>

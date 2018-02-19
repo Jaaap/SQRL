@@ -77,7 +77,7 @@ function getPostDataAsync(href, sendResponse)
 function createIdentity(sendResponse)
 {
 	let newIUK = localSodium.randombytes_buf(32);
-	let newIMK = enhash(localSodium, newIUK);
+	//let newIMK = enhash(localSodium, newIUK);
 	let enscryptSalt = localSodium.randombytes_buf(16);
 	let enscryptIter = 120;
 	let enscryptLogN = 9;
@@ -91,9 +91,10 @@ function createIdentity(sendResponse)
 		newRescueCode.push(zeropad(sodium.randombytes_uniform(10000), 4));
 	}
 	enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(newRescueCode.join("")), enscryptSalt, enscryptLogN, enscryptIter, (step, max) => {
-		chrome.runtime.sendMessage({'action': 'createIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
+		chrome.runtime.sendMessage({'action': 'createIdentity.enscryptUpdate', "step": step, "max": max});
 	}).then(enscryptedNewRescueCode => {
 		aesGcmEncrypt(newIUK, additionalData, enscryptedNewRescueCode, new Uint8Array(12)).then(dataToDecrypt => {
+			memzero(newIUK);
 			try {
 				serializeBlock2(dataToDecrypt, additionalData).then(newTextualIdentity => {
 					sendResponse({"success": true, "textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-"), "enscryptedRescueCode": JSON.stringify(Array.from(enscryptedNewRescueCode))});
@@ -130,8 +131,8 @@ function importIdentity(ti, rescueCode, enscryptedRescueCode, sendResponse)
 					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
 					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
 						let IUK = new Uint8Array(decrypted);
-						//console.log("IUK", IUK);
 						IMK = enhash(localSodium, IUK);
+						memzero(IUK);
 						//FIXME: encrypt IMK with password
 						chrome.storage.local.set({"IMK": Array.from(IMK)});
 						sendResponse({"success": true, "name": ab2hex(localSodium.crypto_hash_sha256(IMK)).substr(0,8)});
