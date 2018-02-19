@@ -46,17 +46,20 @@ function base64url_decode(data)
 function ajax(url, postData, callback)
 {
 console.log("content.ajax", url, postData);
-	let req = new XMLHttpRequest();
-	req.addEventListener("load", evt => {
-		callback(req.responseText);
+	fetch(url, {
+		"body": postData,
+		"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+		"credentials": "omit", // include, *omit, same-origin
+		"headers": {
+			"content-type": "application/x-www-form-urlencoded"
+		},
+		"method": "POST", // *GET, PUT, DELETE, etc.
+		"mode": "same-origin", // no-cors, *same-origin, cors
+		"redirect": "error" // *manual, follow, error
+		//"referer": "client", // *client, no-referrer
+	}).then(resp => resp.text()).then(callback).catch(err => {
+		console.warn("fetch", err);
 	});
-	req.addEventListener("error", evt => {
-		console.error("ajax", req.status, req.reponseText);
-	});
-	//FIXME: prevent redirects
-	req.open("POST", url, true);
-	req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-	req.send(postData);
 }
 
 function onAjaxCallback(responseText, anchor)
