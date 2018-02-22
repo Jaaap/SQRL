@@ -118,3 +118,4 @@ function onAnchorClick(evt)
 	anchor.addEventListener("click", onAnchorClick, false);
 });
 }
+

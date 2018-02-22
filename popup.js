@@ -157,3 +157,4 @@ if ("chrome" in window)
 document.addEventListener("DOMContentLoaded", init);
 
 }
+

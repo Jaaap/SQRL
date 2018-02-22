@@ -219,3 +219,4 @@ var stringify = function(sel)
 
 window.$ = JQL;
 })();
+
