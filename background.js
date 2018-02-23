@@ -225,3 +225,4 @@ scrpt.setAttribute("src", "sodium-asmjs.js");
 document.getElementsByTagName('head')[0].appendChild(scrpt);
 */
 }
+
