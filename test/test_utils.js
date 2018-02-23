@@ -18,19 +18,39 @@ window.sodium = { onload: function(sodium) {
 			});
 		});
 		describe("textualIdentity", function() {
-			let ti = `BAU2 em2x mFMW tHyT EngP
+			it("transcode", async () => {
+				let ti = `BAU2 em2x mFMW tHyT EngP
 Pk8W SDij Dibe gxEN HfEd
 duce Cqpc 2Fze 6hrz 2r52
 bJ64 d3q2 2AHT eSas 7MkS
 Umut sFuc iQmx xt6c ReQS
 gGXb Z5B`;
-			//let rescueCode = "6641-6579-7315-9794-5864-5862";
-			it("transcode", function(done) {
+				//let rescueCode = "6641-6579-7315-9794-5864-5862";
 				let extractedBlock2 = parseBlockType2(ti);
-				serializeBlock2(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData).then(newTextualIdentity => {
-					expect(newTextualIdentity).to.equal(ti);
-					done();
-				});
+				let newTextualIdentity = await serializeBlock2(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData);
+				expect(newTextualIdentity).to.equal(ti);
+			});
+			it("transcodeRekeyed", async () => {
+				let ti = `KbNg MswA ssms evnn Jj5r
+mVMz MiLY znzL pM9n e5WS
+EeHa RF4j Dgm6 6tqn rp8P
+PdGE MZbQ WhNe BgRa uUDy
+rkne 4fTc sKg7 Dn67 E5Ls
+wqDE WVqs mee2 HFAR QWzc
+PgMc yUTT Huzd DtKg B3xD
+gjCv 4Qa5 wy2y pYEY vGzv
+3B7t tgf7 gjQr YfiB i6Cr
+DmDQ x`;
+				//let rescueCode = "6440-3574-7670-2426-0214-3602";
+				let extractedBlock2orig = parseBlockType2(ti);
+console.log(extractedBlock2orig);
+				let newTextualIdentity = await serializeBlock2(extractedBlock2orig.dataToDecrypt, extractedBlock2orig.additionalData);
+				let extractedBlock2copy = parseBlockType2(newTextualIdentity);
+				expect(extractedBlock2orig.dataToDecrypt).to.deep.equal(extractedBlock2copy.dataToDecrypt);
+				expect(extractedBlock2orig.additionalData).to.deep.equal(extractedBlock2copy.additionalData);
+				expect(extractedBlock2orig.enscryptSalt).to.deep.equal(extractedBlock2copy.enscryptSalt);
+				expect(extractedBlock2orig.enscryptIter).to.equal(extractedBlock2copy.enscryptIter);
+				expect(extractedBlock2orig.enscryptLogN).to.equal(extractedBlock2copy.enscryptLogN);
 			});
 		});
 		describe("base56", function() {
