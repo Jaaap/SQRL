@@ -3,7 +3,6 @@
 
 function onGenerateNewIdentityClick(evt)
 {
-	console.log(this, evt);
 	chrome.runtime.sendMessage({'action': 'createIdentity' }, result => {
 		//console.log("onGenerateNewIdentityClick", result);
 		if (result.success)
@@ -14,10 +13,18 @@ function onGenerateNewIdentityClick(evt)
 		}
 	});
 }
+function onPrintIdentityClick(evt)
+{
+	let elems = this.form.elements;
+	chrome.tabs.create({
+		url:"/printidentity.html"
+	}, tab => {
+		console.log("tab", tab);
+	});
+}
 function onCreateFormSubmit(evt)
 {
 	evt.preventDefault();
-	console.log(this, evt);
 	let elems = this.elements;
 	if (elems.verifyrescuecode.value === elems.rescuecode.value)
 	{
@@ -40,10 +47,9 @@ function onCreateFormSubmit(evt)
 function onImportFormSubmit(evt)
 {
 	evt.preventDefault();
-	console.log(this, evt);
 	let elems = this.elements;
 	chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value }, result => {
-		console.log("onImportFormSubmit", result);
+		//console.log("onImportFormSubmit", result);
 		elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
 		if (result.success)
 		{
@@ -105,6 +111,8 @@ function onTextualIdentityKeyUp(evt)
 	validateTextualIdentity(ta.value).then(validationData => {;
 		$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
 		$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
+	}).catch(err => {
+		console.warn("popup.onTextualIdentityKeyUp", "ERRVA000");
 	});
 }
 function setPopupState()
@@ -125,6 +133,7 @@ function init()
 {
 	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
 	$('button#generateNewIdentity').click(onGenerateNewIdentityClick);
+	$('button#printIdentity').click(onPrintIdentityClick);
 	$('form#create').submit(onCreateFormSubmit);
 	$('form#import').submit(onImportFormSubmit);
 	$('form#setpassword').submit(onSetpasswordFormSubmit);
@@ -146,11 +155,15 @@ if ("chrome" in window)
 	chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		if (request.action == "createIdentity.enscryptUpdate")
 		{
-			$('form#create progress').val(request.step).attr("max", request.max);
+			let prgrss = $('form#create progress').val(request.step)[0];
+			if (prgrss && prgrss.max != request.max)
+				prgrss.max = request.max;
 		}
 		else if (request.action == "importIdentity.enscryptUpdate")
 		{
-			$('form#import progress').val(request.step).attr("max", request.max);
+			let prgrss = $('form#import progress').val(request.step)[0];
+			if (prgrss && prgrss.max != request.max)
+				prgrss.max = request.max;
 		}
 	});
 }

@@ -31,7 +31,7 @@ h1>span { font-size: 16px; padding-left: 24px; }
 label.pwd { display: inline-block; margin: 0 0 12px 0; }
 label>span { display: inline-block; width: 150px; vertical-align: top; }
 label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
-label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress { width: 270px; }
+label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress,label>button { width: 270px; }
 label>textarea { border: 0 none; height: 150px; line-height: 22px; }
 #import label>textarea,#export label>textarea { height: 300px; }
 label.pwd>input { width: 380px; }
@@ -71,6 +71,7 @@ button.failure::after,label.failure::after { content: " ❌"; }
 			<label><span></span>Write this code down on paper</label><br/>
 			<br/>
 			<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}"/></label><br/>
+			<!--label><span></span><button type="button" id="printIdentity">Print this Identity &amp; Rescue Code</button></label><br/-->
 			<label><span></span><button>Save &amp; Use this Identity</button></label><br/>
 		</form>
 	</div></div>

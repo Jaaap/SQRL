@@ -14,7 +14,7 @@ window.sodium = { onload: sod => {
 
 function getPostDataAsync(href, sendResponse)
 {
-	console.log("backgroud.getPostDataAsync", href);
+	//console.log("backgroud.getPostDataAsync", href);
 	if (typeof href == "string" && href.startsWith("sqrl://"))
 	{
 		let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
@@ -180,6 +180,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		{
 			crypto.subtle.digest('SHA-256', IMK).then(sha256result => {
 				sendResponse({"hasIdentity": true, "name": ab2hex(sha256result).substr(0,8), "textualIdentity": textualIdentity});
+			}).catch(err => {
+				console.warn("background.hasIdentity", "ERRHI000");
 			});
 			return true;
 		}
@@ -203,7 +205,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		return true;
 	}
 	else
-		console.warn("background request action not recognised", request.action);
+		console.warn("background", "request action not recognised", request.action);
 });
 
 chrome.storage.local.get(["IMK", "textualIdentity"], function(result){

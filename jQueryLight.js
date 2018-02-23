@@ -1,7 +1,5 @@
-(function() {
+{
 "use strict";
-
-//var DEBUG = 1;
 
 var jqo = function() {};
 jqo.prototype = [];
@@ -59,7 +57,7 @@ jqo.prototype.touchmove =	function(act)	{ return this.bind("touchmove",act); };
 jqo.prototype.touchcancel =	function(act)	{ return this.bind("touchcancel",act); };
 jqo.prototype.touchend =	function(act)	{ return this.bind("touchend",act); };
 jqo.prototype.resize =	function(act)	{ return this.bind("resize",act); };
-jqo.prototype.bind =	function(evtName, callback)	{ if (typeof callback == "function") { if (window.webkitURL && (evtName == "mouseenter" || evtName == "mouseleave")) { callback = mouseEnter(callback); evtName = (evtName == "mouseenter") ? "mouseover" : "mouseout"; } this.each(function(i,elem) { elem.addEventListener(evtName,callback,false); }); return this; } else { this.debug("bind",arguments,"Argument 2 should be a function reference but is " + typeof callback); } };
+jqo.prototype.bind =	function(evtName, callback)	{ if (typeof callback == "function") { this.each(function(i,elem) { elem.addEventListener(evtName,callback,false); }); return this; } else { this.debug("bind",arguments,"Argument 2 should be a function reference but is " + typeof callback); } };
 jqo.prototype.trigger =	function(eventType)	{ this.each(function(i,elem) { if (["click", "dblclick", "mouseup", "mousedown"].indexOf(eventType) > -1) { var event = new MouseEvent(eventType, {'view': window,'bubbles': true,'cancelable': true}); elem.dispatchEvent(event); } else { var evt = document.createEvent("Event"); evt.initEvent(eventType, true, true); return !elem.dispatchEvent(evt); } }); return this; };
 jqo.prototype.load =	function(url, callback)	{ if (typeof url == "function") { return this.bind("load",url); } else { console.warn("load not implemented for non-functions") } };
 jqo.prototype.attr =	function attr(key,val)	{
@@ -161,42 +159,6 @@ JQL.each = function(object, callback)
 	return object;
 };
 
-/* helpers for mousenter and mouseleave */
-var mouseEnter = function(_fn)
-{
-	return function(_evt)
-	{
-		var relTarget = _evt.relatedTarget;
-		if (this === relTarget || isAChildOf(this, relTarget)) { return; }
-		_fn.call(this, _evt);
-	}
-};
-var isAChildOf = function(_parent, _child)
-{
-	if (_parent === _child) { return false; }
-	while (_child && _child !== _parent) { _child = _child.parentNode; }
-	return _child === _parent;
-};
-
-
-/*
-//run only once
-if (DEBUG)
-{
-	var origExts = extensions;
-	var newExts = {};
-	for (var name in extensions)
-	{
-		if (name != "debug")
-			newExts[name] = (function(ext,nme){
-				return function () { this.debug(nme, arguments, ' '); return ext[nme].apply(this, arguments); }
-				})(extensions,name);
-	}
-	extensions = newExts;
-	extensions.debug = origExts.debug;
-}
-*/
-
 var stringify = function(sel)
 {
 	if (sel.nodeType == 1) //DOM Element
@@ -216,6 +178,5 @@ var stringify = function(sel)
 		return "FIXME987";
 };
 
-
 window.$ = JQL;
-})();
+};
