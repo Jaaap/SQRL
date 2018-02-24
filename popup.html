@@ -13,7 +13,7 @@
 * { box-sizing: border-box; }
 html,body { display: flex; margin: 0; flex-direction: column; }
 body,label,input { font-size: 17px; }
-button { font-size: 17px; }
+button { font-size: 17px; text-align: center; }
 textarea { font-size: 17px; }
 .notyet { opacity: 0.3; }
 input[type="text"],input[type="password"] { border: 0 none; border-radius: 4px; padding: 0 6px; font-family: monospace; font-size: 15px; line-height: 23px; }
@@ -32,6 +32,8 @@ label.pwd { display: inline-block; margin: 0 0 12px 0; }
 label>span { display: inline-block; width: 150px; vertical-align: top; }
 label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
 label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress,label>button { width: 270px; }
+label.twobtns>button { width: 90px; }
+label.twobtns>button+button { width: 180px; }
 label>textarea { border: 0 none; height: 150px; line-height: 22px; }
 #import label>textarea,#export label>textarea { height: 300px; }
 label.pwd>input { width: 380px; }
@@ -52,6 +54,13 @@ div>input[type="radio"]:checked~div { display: block; }
 
 button.success::after,label.success::after { content: " ✅"; }
 button.failure::after,label.failure::after { content: " ❌"; }
+
+@media print {
+	@page { size: auto; margin: 0; }
+	body { background: url(icons/background.svg) no-repeat center; white-space: pre; font: 36px monospace; text-align: center; padding: 2em; }
+	h1,h2 { margin: 0; }
+	hr { border: 0 none; display: inline-block; width: 90%; border-top: 5px dashed #000; vertical-align: top; }
+}
 </style>
 </head>
 <body>
@@ -71,8 +80,7 @@ button.failure::after,label.failure::after { content: " ❌"; }
 			<label><span></span>Write this code down on paper</label><br/>
 			<br/>
 			<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}"/></label><br/>
-			<!--label><span></span><button type="button" id="printIdentity">Print this Identity &amp; Rescue Code</button></label><br/-->
-			<label><span></span><button>Save &amp; Use this Identity</button></label><br/>
+			<label class="twobtns"><span></span><button type="button" id="printIdentity">🖨 Print</button><button>Use this Identity</button></label><br/>
 		</form>
 	</div></div>
 

@@ -15,12 +15,8 @@ function onGenerateNewIdentityClick(evt)
 }
 function onPrintIdentityClick(evt)
 {
-	let elems = this.form.elements;
-	chrome.tabs.create({
-		url:"/printidentity.html"
-	}, tab => {
-		console.log("tab", tab);
-	});
+	evt.preventDefault();
+	window.print();
 }
 function onCreateFormSubmit(evt)
 {
