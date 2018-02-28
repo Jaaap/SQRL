@@ -44,6 +44,11 @@ function getPostDataAsync(href, windowLoc, sendResponse, tabId)
 						showBadgeError("", 0, tabId);
 						var work = (href, hurl) => {
 							let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
+/*
+crypto.subtle.importKey("raw", IMK, {"name": "HMAC", "hash": "SHA-256"}, false, ["sign"]).then(key => crypto.subtle.sign({"name": "HMAC", "hash": "SHA-256"}, key, str2ab(hurl.hostname))).then(HMAC256Hash2 => {
+	console.log(new Uint8Array(HMAC256Hash2));
+});
+*/
 
 							let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
 							memzero(HMAC256Hash);
@@ -115,7 +120,7 @@ function createIdentity(sendResponse)
 	additionalData.set([enscryptLogN, enscryptIter, 0, 0, 0], 20);//FIXME: only works when enscryptIter < 256
 	for (let i = 0; i < 6; i++)
 	{
-		newRescueCode.push(zeropad(sodium.randombytes_uniform(10000), 4));
+		newRescueCode.push(zeropad(localSodium.randombytes_uniform(10000), 4));
 	}
 	enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(newRescueCode.join("")), enscryptSalt, enscryptLogN, enscryptIter, (step, max) => {
 		chrome.runtime.sendMessage({'action': 'createIdentity.enscryptUpdate', "step": step, "max": max});
