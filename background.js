@@ -11,8 +11,16 @@ window.sodium = { onload: sod => {
 }};
 
 
+function showBadgeError(txt, animateCount, tabId)//animateCount must be even
+{
+	chrome.browserAction.setBadgeText({"text": animateCount % 2 ? "" : txt, "tabId": tabId});
+	if (animateCount > 0)
+	{
+		setTimeout(function(){ showBadgeError(txt, animateCount - 1, tabId); }, 300);
+	}
+}
 
-function getPostDataAsync(href, sendResponse)
+function getPostDataAsync(href, sendResponse, tabId)
 {
 	//console.log("backgroud.getPostDataAsync", href);
 	if (typeof href == "string" && href.startsWith("sqrl://"))
@@ -22,11 +30,13 @@ function getPostDataAsync(href, sendResponse)
 		{
 			if (IMK == null)
 			{
+				showBadgeError("IDTY", 6, tabId);
 				sendResponse({"success": false, "errorCode": "ERRPD003"});
 				return true;
 			}
 			else
 			{
+				showBadgeError("", 0, tabId);
 				var work = (href, hurl) => {
 					let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
 
@@ -159,14 +169,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	/* for content.js */
 	if (request.action === "getPostData")
 	{
-		let hasCalledSendresponse = getPostDataAsync(request.href, sendResponse);
+		let hasCalledSendresponse = getPostDataAsync(request.href, sendResponse, sender.tab ? sender.tab.id : null);
 		if (!hasCalledSendresponse)
 			return true; // make asynchronous
-	}
-	else if (request.action === "content.error.ipmismatch")
-	{
-		if (sender.tab)
-			chrome.browserAction.setBadgeText ({ text: "E01", "tabId": sender.tab.id });
 	}
 	/* for popup.js */
 	//FIXME: find a way to make sure these requests are not coming from content.js but from popup.js
@@ -219,10 +224,5 @@ chrome.storage.local.get(["IMK", "textualIdentity"], function(result){
 		textualIdentity = result.textualIdentity;
 	}
 });
-/*
-var scrpt = document.createElement("script");
-scrpt.setAttribute("src", "sodium-asmjs.js");
-document.getElementsByTagName('head')[0].appendChild(scrpt);
-*/
 }
 
