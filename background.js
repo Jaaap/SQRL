@@ -20,56 +20,73 @@ function showBadgeError(txt, animateCount, tabId)//animateCount must be even
 	}
 }
 
-function getPostDataAsync(href, sendResponse, tabId)
+function getPostDataAsync(href, windowLoc, sendResponse, tabId)
 {
-	//console.log("backgroud.getPostDataAsync", href);
+//console.log("backgroud.getPostDataAsync", href, windowLoc);
 	if (typeof href == "string" && href.startsWith("sqrl://"))
 	{
 		let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
 		if (hurl != null && isValidHostname(hurl.hostname))
 		{
-			if (IMK == null)
+			let wurl = new URL(windowLoc);
+			if (wurl != null && isValidHostname(wurl.hostname))
 			{
-				showBadgeError("IDTY", 6, tabId);
-				sendResponse({"success": false, "errorCode": "ERRPD003"});
-				return true;
-			}
-			else
-			{
-				showBadgeError("", 0, tabId);
-				var work = (href, hurl) => {
-					let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
-
-					let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
-					memzero(HMAC256Hash);
-
-					let client = base64url_encode(localSodium, [
-						"ver=1",
-						"cmd=ident",
-						"idk=" + localSodium.to_base64(SitePublicKey),
-						"opt=cps",
-						"" //keep this empty string for trailing \r\n
-					].join("\r\n"));
-					memzero(SitePublicKey);
-
-					let server = base64url_encode(localSodium, href);
-					let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
-					memzero(SitePrivateKey);
-
-					sendResponse({"success": true, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
-				};
-				if (localSodium == null) //Fennec
+				if (hurl.origin === wurl.origin)
 				{
-					sodiumLoadQueue.push(function(){
-						work(href, hurl);
-					});
-					return false;
+					if (IMK == null)
+					{
+						showBadgeError("IDTY", 6, tabId);
+						sendResponse({"success": false, "errorCode": "ERRPD005"});
+						return true;
+					}
+					else
+					{
+						showBadgeError("", 0, tabId);
+						var work = (href, hurl) => {
+							let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
+
+							let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
+							memzero(HMAC256Hash);
+
+							let client = base64url_encode(localSodium, [
+								"ver=1",
+								"cmd=ident",
+								"idk=" + localSodium.to_base64(SitePublicKey),
+								"opt=cps",
+								"" //keep this empty string for trailing \r\n
+							].join("\r\n"));
+							memzero(SitePublicKey);
+
+							let server = base64url_encode(localSodium, href);
+							let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
+							memzero(SitePrivateKey);
+
+							sendResponse({"success": true, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
+						};
+						if (localSodium == null) //Fennec
+						{
+							sodiumLoadQueue.push(function(){
+								work(href, hurl);
+							});
+							return false;
+						}
+						else
+						{
+							work(href, hurl);
+							return true;
+						}
+					}
 				}
 				else
 				{
-					work(href, hurl);
+					sendResponse({"success": false, "errorCode": "ERRPD004"});
 					return true;
 				}
+			}
+			else
+			{
+				sendResponse({"success": false, "errorCode": "ERRPD003"});
+				return true;
 			}
 		}
 		else
@@ -169,7 +186,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	/* for content.js */
 	if (request.action === "getPostData")
 	{
-		let hasCalledSendresponse = getPostDataAsync(request.href, sendResponse, sender.tab ? sender.tab.id : null);
+		let hasCalledSendresponse = getPostDataAsync(request.href, request.windowLoc, sendResponse, sender.tab ? sender.tab.id : null);
 		if (!hasCalledSendresponse)
 			return true; // make asynchronous
 	}

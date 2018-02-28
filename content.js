@@ -41,8 +41,19 @@ function ajax(url, postData, callback)
 		"mode": "same-origin", // no-cors, *same-origin, cors
 		"redirect": "error" // *manual, follow, error
 		//"referer": "client", // *client, no-referrer
-	}).then(resp => resp.text()).then(callback).catch(err => {
-		console.warn("content.ajax", "ERRFE000");
+	}).then(resp => {
+		if (resp.ok) //statusCode == 200
+		{
+			return resp.text();
+		}
+		else
+		{
+			console.warn("content.ajax", "ERRFE000", resp.status, resp.statusText);
+			return Promise.reject("ERRFE000");
+		}
+	}).then(callback)
+	.catch(err => {
+		console.warn("content.ajax", "ERRFE001");
 	});
 }
 
@@ -73,9 +84,9 @@ function onAnchorClick(evt)
 	//TODO: check meta/ctrl/middleclick?
 	if (anchor.tagName == "A")
 	{
-		chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href}, result => {
-			//console.log(result);
-			if (result.success)
+		chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href, "windowLoc": window.location.href}, result => {
+			//console.log("content.onAnchorClick", result);
+			if (result && result.success)
 				ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, respTxt => { onAjaxCallback(respTxt, anchor); });
 		});
 	}
