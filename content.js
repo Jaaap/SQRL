@@ -44,16 +44,16 @@ function ajax(url, postData, callback)
 	}).then(resp => {
 		if (resp.ok) //statusCode == 200
 		{
-			return resp.text();
+			return resp.text(); //promise
 		}
 		else
 		{
-			console.warn("content.ajax", "ERRFE000", resp.status, resp.statusText);
+			console.warn("content.ajax", "ERRFE000", "Response statuscode other than 200", resp.status);
 			return Promise.reject("ERRFE000");
 		}
 	}).then(callback)
 	.catch(err => {
-		console.warn("content.ajax", "ERRFE001");
+		console.warn("content.ajax", "ERRFE001", "Network error");
 	});
 }
 
@@ -61,7 +61,7 @@ function onAjaxCallback(responseText, anchor)
 {
 //console.log("onAjaxCallback", responseText);
 	let responseLines = base64url_decode(responseText).split("\r\n");
-console.log("onAjaxCallback", JSON.stringify(responseLines));
+//console.log("onAjaxCallback", JSON.stringify(responseLines));
 	let responseMap = {};
 	for (let line of responseLines)
 	{
@@ -72,7 +72,7 @@ console.log("onAjaxCallback", JSON.stringify(responseLines));
 	if ("url" in responseMap)
 		window.location.href = responseMap.url;
 	else
-		console.warn("content.onAjaxCallback", "No url found in server response");
+		console.warn("content.onAjaxCallback", "ERRAC001", "No url found in server response");
 }
 
 function onAnchorClick(evt)
@@ -88,6 +88,8 @@ function onAnchorClick(evt)
 			//console.log("content.onAnchorClick", result);
 			if (result && result.success)
 				ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, respTxt => { onAjaxCallback(respTxt, anchor); });
+			else
+				console.warn("content.onAnchorClick", "ERRLC001", "Unexpected response from background");
 		});
 	}
 }

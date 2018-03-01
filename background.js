@@ -131,17 +131,21 @@ function createIdentity(sendResponse)
 				serializeBlock2(dataToDecrypt, additionalData).then(newTextualIdentity => {
 					sendResponse({"success": true, "textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-"), "enscryptedRescueCode": JSON.stringify(Array.from(enscryptedNewRescueCode))});
 				}).catch(err => {
+					console.warn("background.createIdentity", "ERRCI004", "serializeBlock2 failed");
 					sendResponse({"success": false, "errorCode": "ERRCI004"});
 				});
 			}
 			catch (err)
 			{
+				console.warn("background.createIdentity", "ERRCI003", "serializeBlock2 failed");
 				sendResponse({"success": false, "errorCode": "ERRCI003"});
 			}
 		}).catch(err => {
+			console.warn("background.createIdentity", "ERRCI002", "aesGcmEncrypt failed");
 			sendResponse({"success": false, "errorCode": "ERRCI002"});
 		});
 	}).catch(err => {
+		console.warn("background.createIdentity", "ERRCI001", "enscrypt failed");
 		sendResponse({"success": false, "errorCode": "ERRCI001"});
 	});
 }
