@@ -104,11 +104,11 @@ function onTextualIdentityKeyUp(evt)
 {
 	let ta = evt.target;
 	//let validationData = validateTextualIdentity(ta.value);
-	validateTextualIdentity(ta.value).then(validationData => {;
+	validateTextualIdentity(ta.value).then(validationData => {
 		$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
 		$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
 	}).catch(err => {
-		console.warn("popup.onTextualIdentityKeyUp", "ERRVA000");
+		console.warn("popup.onTextualIdentityKeyUp", "ERRVA000", err);
 	});
 }
 function setPopupState()
@@ -119,9 +119,9 @@ function setPopupState()
 		$('#tab3,#tab6').enable(result.hasIdentity);
 		$('#tab4').enable(result.hasIdentity && !hasPassword);
 		$('#tab5').enable(hasPassword);
-		if (result.hasIdentity)
+		if (result.hasIdentity && "name" in result)
 			$('#identityhash').text(result.name);
-		if (result.textualIdentity)
+		if (result.hasIdentity && "textualIdentity" in result)
 			$('form#export textarea[name="identity"]').val(result.textualIdentity);
 	});
 }
