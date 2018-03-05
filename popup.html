@@ -48,6 +48,7 @@ h1 { margin: 0 0 16px 0; font-size: 46px; line-height: 32px; }
 h1>img { float: right; width: 39px; height: 39px; vertical-align: top; border: 1px solid #FFF; border-radius: 8px; box-shadow: 0 0 4px #FFF; }
 h1>span { font-size: 16px; padding-left: 24px; }
 
+label { vertical-align: top; }
 label.pwd { display: inline-block; margin: 0 0 12px 0; }
 label>span { display: inline-block; width: 150px; vertical-align: top; }
 label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
@@ -96,7 +97,7 @@ div.print { display: none; }
 <main>
 <h1><img src="icons/256.png"/>SQRL<span id="identityhash"></span></h1>
 <form id="passwd" class="notyet">
-	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><label><input type="checkbox" name="savepwd"/>Remember</label>
+	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><label><input type="checkbox" name="savepwd" checked/>Remember</label>
 </form>
 <div>
 	<div>
@@ -179,9 +180,10 @@ div.print { display: none; }
 		<div>
 			<label><span>Version</span><b id="version">0.0.0</b></label><br/>
 			<label><span>More info</span><a href="https://grc.com/sqrl/sqrl.htm" target="_blank">grc.com/sqrl</a></label><br/>
-			<label><span>Abbreviations</span><dl><dt>COA</dt><dd>Cross-Origin Authentication</dd>
-<dt>IDTY</dt><dd>Identity</dd>
-<dt>PASS</dt><dd>Password</dd>
+			<label><span>Abbreviations</span><dl><dt>Auth</dt><dd>Authentication requested</dd>
+<dt>COA</dt><dd>Cross-Origin Authentication attempt</dd>
+<dt>IDTY</dt><dd>Missing Identity</dd>
+<dt>PASS</dt><dd>Password required</dd>
 </dl></label><br/>
 		</div>
 	</div>

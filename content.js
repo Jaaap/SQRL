@@ -53,11 +53,11 @@ function ajax(url, postData, callback)
 		}
 	}).then(callback)
 	.catch(err => {
-		console.warn("content.ajax", "ERRFE001", "Network error");
+		console.warn("content.ajax", "ERRFE001", "Network error", err);
 	});
 }
 
-function onAjaxCallback(responseText, anchor)
+function onAjaxCallback(responseText)
 {
 //console.log("onAjaxCallback", responseText);
 	let responseLines = base64url_decode(responseText).split("\r\n");
@@ -77,20 +77,25 @@ function onAjaxCallback(responseText, anchor)
 
 function onAnchorClick(evt)
 {
-	evt.preventDefault();
-	let anchor = evt.target;
-	while (anchor && anchor.tagName != "A")
-		anchor = anchor.parentNode;
-	//TODO: check meta/ctrl/middleclick?
-	if (anchor.tagName == "A")
+	if (evt.isTrusted) //User clicked
 	{
-		chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href, "windowLoc": window.location.href}, result => {
-			//console.log("content.onAnchorClick", result);
-			if (result && result.success)
-				ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, respTxt => { onAjaxCallback(respTxt, anchor); });
-			else
-				console.warn("content.onAnchorClick", "ERRLC001", "Unexpected response from background");
-		});
+		evt.preventDefault();
+		let anchor = evt.target;
+		while (anchor && anchor.tagName != "A")
+			anchor = anchor.parentNode;
+		//TODO: check meta/ctrl/middleclick?
+		if (anchor.tagName == "A")
+		{
+			chrome.runtime.sendMessage({"action": "getPostData", "href": anchor.href, "windowLoc": window.location.href}, result => {
+				//console.log("content.onAnchorClick", result);
+/*
+				if (result && result.success)
+					ajax(anchor.href.replace(/^sqrl:/, 'https:'), result.postData, respTxt => { onAjaxCallback(respTxt, anchor); });
+				else
+					console.warn("content.onAnchorClick", "ERRLC001", "Unexpected response from background");
+*/
+			});
+		}
 	}
 }
 
@@ -98,5 +103,16 @@ function onAnchorClick(evt)
 [].forEach.call(document.querySelectorAll('a[href^="sqrl://"]'), anchor => {
 	anchor.addEventListener("click", onAnchorClick, false);
 });
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message && message.action === "getPostDataResp")
+	{
+//console.log("content.onMessage", message);
+		if (message.success)
+			ajax(message.href.replace(/^sqrl:/, 'https:'), message.postData, onAjaxCallback);
+		else
+			console.warn("content.onAnchorClick", "ERRLC001", "Unexpected response from background");
+	}
+})
+
 }
 

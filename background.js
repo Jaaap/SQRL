@@ -1,6 +1,6 @@
 {
 "use strict";
-let localSodium = null, IMK = null, textualIdentity = null, sodiumLoadQueue = [];
+let localSodium = null, IMK = null, textualIdentity = null, sodiumLoadQueue = [], getPostDataQueue = {};
 window.sodium = { onload: sod => {
 	localSodium = sod;
 	for (func of sodiumLoadQueue)
@@ -9,21 +9,6 @@ window.sodium = { onload: sod => {
 	}
 	sodiumLoadQueue = [];
 }};
-
-
-function showBadgeError(txt, animateCount, tabId)//animateCount must be even
-{
-	chrome.browserAction.setBadgeText({"text": animateCount % 2 ? "" : txt, "tabId": tabId});
-	if (animateCount > 0)
-	{
-		setTimeout(function(){ showBadgeError(txt, animateCount - 1, tabId); }, 300);
-	}
-}
-
-
-
-
-
 
 function getPostDataAsync(href, windowLoc, sendResponse, tabId)
 {
@@ -71,7 +56,7 @@ crypto.subtle.importKey("raw", IMK, {"name": "HMAC", "hash": "SHA-256"}, false, 
 							let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
 							memzero(SitePrivateKey);
 
-							sendResponse({"success": true, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
+							sendResponse({"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
 						};
 						if (localSodium == null) //Fennec
 						{
@@ -212,11 +197,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	/* for content.js */
 	if (request.action === "getPostData")
 	{
-		if (sender != null && "tab" in sender)
+		if (sender != null && "tab" in sender && sender.tab.id != null)
 		{
+			getPostDataQueue["" + sender.tab.id] = {"href": request.href, "windowLoc": request.windowLoc};
+			showBadgeError("Auth", 6, sender.tab.id);
+			sendResponse({"success": true});
+/*
 			let hasCalledSendresponse = getPostDataAsync(request.href, request.windowLoc, sendResponse, sender.tab.id);
 			if (!hasCalledSendresponse)
 				return true; // make asynchronous
+*/
 		}
 		else
 		{
@@ -226,6 +216,52 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 	/* for popup.js */
 	//FIXME: find a way to make sure these requests are not coming from content.js but from popup.js
+	else if (request.action === "sendPostDataToActiveTab")
+	{
+		chrome.tabs.query({'active': true, 'currentWindow': true}, tabsResp => {
+			if (tabsResp != null && tabsResp.length)
+			{
+				let tabId = tabsResp[0].id;
+				if (tabId in getPostDataQueue)
+				{
+					try {
+						showBadgeError("", 0, tabId);
+						let request = getPostDataQueue[tabId];
+						delete getPostDataQueue[tabId];
+						//chrome.tabs.sendMessage(tabId, getPostDataAsync(request.href, request.windowLoc, tabId), data => {});
+						if (tabsResp[0].url === request.windowLoc)
+						{
+							getPostDataAsync(request.href, request.windowLoc, data => {
+								//console.log("background.requestAction", "getPostDataAsync.sendMessage", data);
+								data.action = "getPostDataResp";
+								chrome.tabs.sendMessage(tabId, data, resp => {
+									//console.log("background.requestAction", "resp", resp);
+								});
+							}, tabId);
+							sendResponse({"success": true, "hasOpenRequest": true});
+						}
+						else
+						{
+							//console.log("background.requestAction", "ERRRA003", "tab's location url has changed");
+							sendResponse({"success": true, "hasOpenRequest": false});
+						}
+					} catch (err) {
+						console.warn("background.requestAction", "ERRRA002");
+						sendResponse({"success": false, "errorCode": "ERRRA002"});
+					}
+				}
+				else
+				{
+					sendResponse({"success": true, "hasOpenRequest": false});
+				}
+			}
+			else
+			{
+				sendResponse({"success": true, "hasOpenRequest": false});
+			}
+		});
+		return true;
+	}
 	else if (request.action === "hasIdentity")
 	{
 		if (IMK == null)
@@ -284,7 +320,22 @@ chrome.storage.local.get(["IMK", "textualIdentity"], function(result){
 
 
 
-// Utils
+
+
+
+
+
+
+
+//------------------------------- Utils -------------------------------//
+function showBadgeError(txt, animateCount, tabId)//animateCount must be even
+{
+	chrome.browserAction.setBadgeText({"text": animateCount % 2 ? "" : txt, "tabId": tabId});
+	if (animateCount > 0)
+	{
+		setTimeout(function(){ showBadgeError(txt, animateCount - 1, tabId); }, 300);
+	}
+}
 function zeropad(nmbr, len)
 {
 	if (typeof nmbr == "number")

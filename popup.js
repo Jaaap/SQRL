@@ -127,6 +127,18 @@ function setPopupState()
 }
 function init()
 {
+	if ("chrome" in window)
+	{
+		chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab"}, resp => {
+//console.log("popup.init", "sendPostDataToActiveTab", resp);
+			if (resp != null && resp.success && resp.hasOpenRequest)
+			{
+				window.close();
+			}
+		});
+		setPopupState();
+		$('#version').text(chrome.runtime.getManifest().version);
+	}
 	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
 	$('button#generateNewIdentity').click(onGenerateNewIdentityClick);
 	$('button#printIdentity').click(onPrintIdentityClick);
@@ -139,11 +151,6 @@ function init()
 	//$('form#create input[name="rescuecode"]+b').click(onRescuecodeRevealClick);
 	$('form#create input[name="verifyrescuecode"]').focus(onVerifyrescuecodeFocus).blur(onVerifyrescuecodeBlur).keyup(onVerifyrescuecodeKeyUp);
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
-	if ("chrome" in window)
-	{
-		setPopupState();
-		$('#version').text(chrome.runtime.getManifest().version);
-	}
 }
 
 if ("chrome" in window)
