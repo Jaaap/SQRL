@@ -1,6 +1,6 @@
 {
 "use strict";
-let localSodium = null, IMK = null, textualIdentity = null, sodiumLoadQueue = [], getPostDataQueue = {};
+let localSodium = null, textualIdentity = null, sodiumLoadQueue = [], getPostDataQueue = {};
 window.sodium = { onload: sod => {
 	localSodium = sod;
 	for (func of sodiumLoadQueue)
@@ -9,6 +9,36 @@ window.sodium = { onload: sod => {
 	}
 	sodiumLoadQueue = [];
 }};
+
+
+let IMK = null;
+function hasIMK()
+{
+	return IMK != null;
+}
+function getIMK()
+{
+	return IMK;
+}
+function setIMK(newIMK)
+{
+	if (newIMK instanceof Uint8Array && newIMK.length === 32)
+	{
+		IMK = newIMK;
+		chrome.storage.local.set({"IMK": Array.from(newIMK)});
+	}
+	else
+	{
+		console.warn("background.setIMK", "ERRSI000", 'Argument 1 "newIMK" should be a Uint8Array of length 32');
+		throw new Error('Argument 1 "newIMK" should be a Uint8Array of length 32');
+	}
+}
+function eraseIMK()
+{
+	IMK = null;
+	chrome.storage.local.remove(["IMK"], () => {});
+}
+
 
 function getPostDataAsync(href, windowLoc, sendResponse, tabId)
 {
@@ -23,19 +53,13 @@ function getPostDataAsync(href, windowLoc, sendResponse, tabId)
 			{
 				if (hurl.origin === wurl.origin)
 				{
-					if (IMK == null)
-					{
-						showBadgeError("IDTY", 6, tabId);
-						sendResponse({"success": false, "errorCode": "ERRPD005"});
-						return true;
-					}
-					else
+					if (hasIMK())
 					{
 						showBadgeError("", 0, tabId);
 						let work = (href, hurl) => {
-							let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, IMK);
+							let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, getIMK());
 /*
-crypto.subtle.importKey("raw", IMK, {"name": "HMAC", "hash": "SHA-256"}, false, ["sign"]).then(key => crypto.subtle.sign({"name": "HMAC", "hash": "SHA-256"}, key, str2ab(hurl.hostname))).then(HMAC256Hash2 => {
+crypto.subtle.importKey("raw", getIMK(), {"name": "HMAC", "hash": "SHA-256"}, false, ["sign"]).then(key => crypto.subtle.sign({"name": "HMAC", "hash": "SHA-256"}, key, str2ab(hurl.hostname))).then(HMAC256Hash2 => {
 	console.log(new Uint8Array(HMAC256Hash2));
 });
 */
@@ -70,6 +94,13 @@ crypto.subtle.importKey("raw", IMK, {"name": "HMAC", "hash": "SHA-256"}, false, 
 							work(href, hurl);
 							return true;
 						}
+					}
+					else
+					{
+						showBadgeError("IDTY", 6, tabId);
+						console.warn("background.getPostDataAsync", "ERRPD005", "Missing identity");
+						sendResponse({"success": false, "errorCode": "ERRPD005"});
+						return true;
 					}
 				}
 				else
@@ -162,11 +193,9 @@ function importIdentity(ti, rescueCode, enscryptedRescueCode, sendResponse)
 					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
 					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
 						let IUK = new Uint8Array(decrypted);
-						IMK = enhash(localSodium, IUK);
+						setIMK(enhash(localSodium, IUK));
 						memzero(IUK);
-						//FIXME: encrypt IMK with password
-						chrome.storage.local.set({"IMK": Array.from(IMK)});
-						sendResponse({"success": true, "name": ab2hex(localSodium.crypto_hash_sha256(IMK)).substr(0,8)});
+						sendResponse({"success": true, "name": ab2hex(localSodium.crypto_hash_sha256(getIMK())).substr(0,8)});
 					}).catch(err => {
 						console.warn("background.importIdentity", "ERRII004", "aesGcmDecrypt failed");
 						sendResponse({"success": false, "errorCode": "ERRII004"});
@@ -199,9 +228,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	{
 		if (sender != null && "tab" in sender && sender.tab.id != null)
 		{
-			getPostDataQueue["" + sender.tab.id] = {"href": request.href, "windowLoc": request.windowLoc};
-			showBadgeError("Auth", 6, sender.tab.id);
-			sendResponse({"success": true});
+			if (hasIMK())
+			{
+				getPostDataQueue["" + sender.tab.id] = {"href": request.href, "windowLoc": request.windowLoc};
+				showBadgeError("Auth", 6, sender.tab.id);
+				sendResponse({"success": true});
+			}
+			else
+			{
+				showBadgeError("IDTY", 6, sender.tab.id);
+				console.warn("background.requestAction", "ERRRA001", "Missing identity");
+				sendResponse({"success": false, "errorCode": "ERRRA001"});
+			}
 /*
 			let hasCalledSendresponse = getPostDataAsync(request.href, request.windowLoc, sendResponse, sender.tab.id);
 			if (!hasCalledSendresponse)
@@ -264,13 +302,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 	else if (request.action === "hasIdentity")
 	{
-		if (IMK == null)
+		if (hasIMK())
 		{
-			sendResponse({"hasIdentity": false});
-		}
-		else
-		{
-			crypto.subtle.digest('SHA-256', IMK).then(sha256result => {
+			crypto.subtle.digest('SHA-256', getIMK()).then(sha256result => {
 				sendResponse({"hasIdentity": true, "name": ab2hex(sha256result).substr(0,8), "textualIdentity": textualIdentity});
 			}).catch(err => {
 				console.warn("background.hasIdentity", "ERRHI000");
@@ -278,11 +312,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			});
 			return true;
 		}
+		else
+		{
+			sendResponse({"hasIdentity": false});
+		}
 	}
 	else if (request.action === "eraseIdentity")
 	{
-		IMK = null;
-		chrome.storage.local.remove(["IMK","identityDataType2"], () => {
+		eraseIMK();
+		chrome.storage.local.remove(["identityDataType2"], () => {
 			sendResponse(chrome.runtime.lastError);
 		});
 		return true;
@@ -304,8 +342,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.storage.local.get(["IMK", "textualIdentity"], function(result){
 	if (result.IMK)
 	{
-		IMK = new Uint8Array(result.IMK);
+		setIMK(new Uint8Array(result.IMK));
 		memzero(result.IMK);
+		delete result.IMK;
 	}
 	if (result.textualIdentity)
 	{
@@ -642,9 +681,8 @@ function base56decode(s)
 	}
 	return result;
 }
-function isValidHostname(hn)
+function isValidHostname(hn) // Must be punycode-encoded, like `new URL().hostname` is;
 {
-	//FIXME: it is assumed that the hostname is punycode encoded - test and/or fix this
 	/*
 	Hostnames are composed of series of labels concatenated with dots, as are all domain names.
 	For example, "en.wikipedia.org" is a hostname. Each label must be between 1 and 63 characters long, and the entire hostname has a maximum of 255 characters.
