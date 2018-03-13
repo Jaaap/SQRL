@@ -369,6 +369,7 @@ chrome.storage.local.get(["IMK", "textualIdentity"], function(result){
 //------------------------------- Utils -------------------------------//
 function showBadgeError(txt, animateCount, tabId)//animateCount must be even
 {
+	chrome.browserAction.setBadgeBackgroundColor({color: "red"});
 	chrome.browserAction.setBadgeText({"text": animateCount % 2 ? "" : txt, "tabId": tabId});
 	if (animateCount > 0)
 	{
