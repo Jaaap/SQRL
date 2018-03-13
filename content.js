@@ -33,14 +33,18 @@ function ajax(url, postData, callback)
 	fetch(url, {
 		"body": postData,
 		"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-		"credentials": "omit", // include, *omit, same-origin
-		"headers": {
-			"content-type": "application/x-www-form-urlencoded"
-		},
 		"method": "POST", // *GET, PUT, DELETE, etc.
+		"headers": { "content-type": "application/x-www-form-urlencoded" },
+		"referer": "no-referrer", // *client, no-referrer
+		"redirect": "error", // *manual, follow, error
+		"credentials": "omit", // include, *omit, same-origin
+/*
+		Default mode is same-origin on Fx and no-cors in the whatwg spec
+		For Chrome see https://bugs.chromium.org/p/chromium/issues/detail?id=816562
+			FIXME: Omitting mode works in both Fx and Chrome BUT IN CHROME IT ALLOWS CORS
 		"mode": "same-origin", // no-cors, *same-origin, cors
-		"redirect": "error" // *manual, follow, error
-		//"referer": "client", // *client, no-referrer
+		"mode": "no-cors" // no-cors, *same-origin, cors
+*/
 	}).then(resp => {
 		if (resp.ok) //statusCode == 200
 		{
