@@ -1,6 +1,20 @@
 "use strict";
 const base56chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
 
+function memzero(e) //WARNING: nameclash with the same method in background.js
+{
+	if (e.constructor === Uint8Array)
+		for (let i = 0; i < e.length; i++)
+			e[i] = 0;
+	else if (e.constructor === BN)
+		for (let i = 0; i < e.words.length; i++)
+			e.words[i] = 0;
+	else if (Array.isArray(e)) //TODO: check that setting the values to null is better than setting them to 0
+		for (let i = 0; i < e.length; i++)
+			e[i] = 0;
+	else
+		throw new Error("Only Uint8Array, Array and BN instances can be wiped");
+}
 function str2ab(str) //WARNING: nameclash with the same method in background.js //string to arraybuffer (Uint8Array)
 {
 	return new TextEncoder("utf-8").encode(str);

@@ -11,38 +11,145 @@ window.sodium = { onload: sod => {
 }};
 
 
-let IMK = null;
+let savepwd = false;
+let IMK = null, passIv = null, passwordEnscrypted = null, passwordEnscryptSalt = null, passwordEnscryptLogN = 9, passwordEnscryptIter = 1;
+
+chrome.storage.local.get(["encrIMK", "passIv", "passwordEnscryptSalt", "savepwd"], function(result){
+	if (result.encrIMK && result.passIv && result.passwordEnscryptSalt)
+	{
+		IMK = new Uint8Array(result.encrIMK);
+		passIv = new Uint8Array(result.passIv);
+		passwordEnscryptSalt = new Uint8Array(result.passwordEnscryptSalt);
+		memzero(result.encrIMK);
+		delete result.encrIMK;
+	}
+	else
+		console.info("background.getStorage", "ERRGS000", "encrIMK or passIv or passwordEnscryptSalt not in localStorage");
+	if (result.savepwd)
+	{
+		savepwd = result.savepwd;
+	}
+});
+function getIdentityName()
+{
+	if (passIv == null)
+		return null;
+	return ab2hex(passIv).substr(0,4);
+}
+function setSavepwd(newSavepwd)
+{
+	savepwd = newSavepwd;
+	chrome.storage.local.set({"savepwd": newSavepwd});
+}
 function hasIMK()
 {
-	return IMK != null;
+	return IMK != null && passIv != null && passwordEnscryptSalt != null;
 }
-function getIMK()
+async function getIMK(passwd)
 {
-	return IMK;
-}
-function setIMK(newIMK)
-{
-	if (newIMK instanceof Uint8Array && newIMK.length === 32)
+	if (passwd == null && passwordEnscrypted == null)
+		return Promise.reject('ERRGI001: Missing password');
+	if (hasIMK())
 	{
-		IMK = newIMK;
-		chrome.storage.local.set({"IMK": Array.from(newIMK)});
+		let prms = passwordEnscrypted == null ? enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, passwd, passwordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {}) : new Promise(resolve => resolve(passwordEnscrypted));
+		return prms.then(passwordEnscryptedLocal => {
+			if (passwordEnscryptedLocal.length === 32)
+			{
+				return aesGcmDecrypt(IMK, null, passwordEnscryptedLocal, passIv).then(decryptedIMK => {
+					if (savepwd)
+						passwordEnscrypted = passwordEnscryptedLocal;
+					else
+						memzero(passwordEnscryptedLocal);
+					return decryptedIMK;
+				}).catch(err => {
+					memzero(passwordEnscryptedLocal);
+					console.warn("background.getIMK", "ERRGI003");
+					throw(err);
+				});
+			}
+			else
+			{
+				console.warn("background.getIMK", "ERRGI002", "Length of enscryptedNewPassword should be 32");
+				memzero(passwordEnscryptedLocal);
+				return Promise.reject('ERRGI002');
+			}
+		}).catch(err => {
+			memzero(newPasswordAB);
+			console.warn("background.getIMK", "ERRGI001", "enscrypt newPassword failed");
+			throw new Error('ERRGI001', "enscrypt newPassword failed");
+		});
+	}
+	return Promise.reject('ERRGI000: Missing IMK');
+}
+async function setIMK(newIMK, newPasswordAB)
+{
+	if (newIMK.constructor === Uint8Array && newIMK.length === 32)
+	{
+		if (newPasswordAB.constructor === Uint8Array)
+		{
+			let newPasswordEnscryptSalt = localSodium.randombytes_buf(16);
+			return enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, newPasswordAB, newPasswordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {}).then(enscryptedNewPassword => {
+				memzero(newPasswordAB);
+				if (enscryptedNewPassword.length === 32)
+				{
+					let newPassIv = localSodium.randombytes_buf(12); //FIXME: or we could use crypto.getRandomValues(new Uint8Array(12)), which is better?
+					return aesGcmEncrypt(newIMK, null, enscryptedNewPassword, newPassIv).then(newEncrptdIMK => {
+						memzero(newIMK);
+						if (savepwd)
+							passwordEnscrypted = enscryptedNewPassword;
+						else
+							memzero(enscryptedNewPassword);
+						IMK = newEncrptdIMK;
+						passIv = newPassIv;
+						passwordEnscryptSalt = newPasswordEnscryptSalt;
+						chrome.storage.local.set({"encrIMK": Array.from(newEncrptdIMK), "passIv": Array.from(newPassIv), "passwordEnscryptSalt": Array.from(newPasswordEnscryptSalt)});
+						return { success: true };
+					}).catch(err => {
+						memzero(newIMK);
+						memzero(newPasswordAB);
+						console.warn("background.setIMK", "ERRSI004", "aesGcmEncrypt newIMK failed");
+						throw new Error('ERRSI004, aesGcmEncrypt error');
+					});
+				}
+				else
+				{
+					console.warn("background.setIMK", "ERRSI003", "Length of enscryptedNewPassword should be 32");
+					return Promise.reject('ERRSI003');
+				}
+			}).catch(err => {
+				memzero(newPasswordAB);
+				console.warn("background.setIMK", "ERRSI002", "enscrypt newPassword failed");
+				return Promise.reject('ERRSI002');
+			});
+		}
+		else
+		{
+			console.warn("background.setIMK", "ERRSI001", 'Argument 2 "newPasswordAB" should be a Uint8Array');
+			return Promise.reject('Argument 2 "newPasswordAB" should be a Uint8Array');
+		}
 	}
 	else
 	{
 		console.warn("background.setIMK", "ERRSI000", 'Argument 1 "newIMK" should be a Uint8Array of length 32');
-		throw new Error('Argument 1 "newIMK" should be a Uint8Array of length 32');
+		return Promise.reject('Argument 1 "newIMK" should be a Uint8Array of length 32');
 	}
 }
 function eraseIMK()
 {
 	IMK = null;
-	chrome.storage.local.remove(["IMK"], () => {});
+	chrome.storage.local.remove(["encrIMK"], () => {});
+}
+function hasPassword()
+{
+	return passwordEnscrypted != null;
 }
 
 
-function getPostDataAsync(href, windowLoc, sendResponse, tabId)
+function getPostDataAsync(href, windowLoc, passwdFromPopupAB, sendResponse, tabId)
 {
 //console.log("backgroud.getPostDataAsync", href, windowLoc);
+	if (passwdFromPopupAB != null && passwdFromPopupAB.constructor !== Uint8Array)
+		throw new Error('Argument 3 "passwdFromPopup" should be a Uint8Array or null');
 	if (typeof href == "string" && href.startsWith("sqrl://"))
 	{
 		let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
@@ -55,43 +162,55 @@ function getPostDataAsync(href, windowLoc, sendResponse, tabId)
 				{
 					if (hasIMK())
 					{
-						showBadgeError("", 0, tabId);
-						let work = (href, hurl) => {
-							let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, getIMK());
+						if (hasPassword() || passwdFromPopupAB != null)
+						{
+							showBadgeError("", 0, tabId);
+							let work1 = (href, hurl, passwdFromPopupAB) => {
+								getIMK(passwdFromPopupAB).then(currIMK => {
+									let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, currIMK);
 /*
 crypto.subtle.importKey("raw", getIMK(), {"name": "HMAC", "hash": "SHA-256"}, false, ["sign"]).then(key => crypto.subtle.sign({"name": "HMAC", "hash": "SHA-256"}, key, str2ab(hurl.hostname))).then(HMAC256Hash2 => {
-	console.log(new Uint8Array(HMAC256Hash2));
+console.log(new Uint8Array(HMAC256Hash2));
 });
 */
 
-							let { publicKey: SitePublicKey,  privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
-							memzero(HMAC256Hash);
+									let { publicKey: SitePublicKey, privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
+									memzero(HMAC256Hash);
 
-							let client = base64url_encode(localSodium, [
-								"ver=1",
-								"cmd=ident",
-								"idk=" + localSodium.to_base64(SitePublicKey),
-								"opt=cps",
-								"" //keep this empty string for trailing \r\n
-							].join("\r\n"));
-							memzero(SitePublicKey);
+									let client = base64url_encode([
+										"ver=1",
+										"cmd=ident",
+										"idk=" + localSodium.to_base64(SitePublicKey),
+										"opt=cps",
+										"" //keep this empty string for trailing \r\n
+									].join("\r\n"));
+									memzero(SitePublicKey);
 
-							let server = base64url_encode(localSodium, href);
-							let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
-							memzero(SitePrivateKey);
+									let server = base64url_encode(href);
+									let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
+									memzero(SitePrivateKey);
 
-							sendResponse({"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
-						};
-						if (localSodium == null) //Fennec
-						{
-							sodiumLoadQueue.push(function(){
-								work(href, hurl);
-							});
+									sendResponse({"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
+								}).catch(err => {
+									console.warn("background.getPostDataAsync", "ERRPD008", "getIMK failed");
+									sendResponse({"success": false, "errorCode": "ERRPD008"});
+								});
+							};
+							if (localSodium == null) //Fennec
+							{
+								sodiumLoadQueue.push(function(){ work1(href, hurl, passwdFromPopupAB); });
+							}
+							else
+							{
+								work1(href, hurl, passwdFromPopupAB);
+							}
 							return false;
 						}
 						else
 						{
-							work(href, hurl);
+							showBadgeError("PASS", 6, tabId);
+							console.warn("background.getPostDataAsync", "ERRPD006", "Missing password");
+							sendResponse({"success": false, "errorCode": "ERRPD006"});
 							return true;
 						}
 					}
@@ -135,7 +254,6 @@ crypto.subtle.importKey("raw", getIMK(), {"name": "HMAC", "hash": "SHA-256"}, fa
 function createIdentity(sendResponse)
 {
 	let newIUK = localSodium.randombytes_buf(32);
-	//let newIMK = enhash(localSodium, newIUK);
 	let enscryptSalt = localSodium.randombytes_buf(16);
 	let enscryptIter = 120;
 	let enscryptLogN = 9;
@@ -151,75 +269,108 @@ function createIdentity(sendResponse)
 	enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(newRescueCode.join("")), enscryptSalt, enscryptLogN, enscryptIter, (step, max) => {
 		chrome.runtime.sendMessage({'action': 'createIdentity.enscryptUpdate', "step": step, "max": max});
 	}).then(enscryptedNewRescueCode => {
-		aesGcmEncrypt(newIUK, additionalData, enscryptedNewRescueCode, new Uint8Array(12)).then(dataToDecrypt => {
-			memzero(newIUK);
-			try {
-				serializeBlock2(dataToDecrypt, additionalData).then(newTextualIdentity => {
-					sendResponse({"success": true, "textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-"), "enscryptedRescueCode": JSON.stringify(Array.from(enscryptedNewRescueCode))});
-				}).catch(err => {
+		if (enscryptedNewRescueCode.length === 32)
+		{
+			aesGcmEncrypt(newIUK, additionalData, enscryptedNewRescueCode, new Uint8Array(12)).then(dataToDecrypt => {
+				memzero(newIUK);
+				try {
+					serializeBlock2(dataToDecrypt, additionalData).then(newTextualIdentity => {
+						sendResponse({"success": true, "textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-"), "enscryptedRescueCode": JSON.stringify(Array.from(enscryptedNewRescueCode))});
+					}).catch(err => {
+						console.warn("background.createIdentity", "ERRCI005", "serializeBlock2 failed");
+						sendResponse({"success": false, "errorCode": "ERRCI005"});
+					});
+				}
+				catch (err)
+				{
 					console.warn("background.createIdentity", "ERRCI004", "serializeBlock2 failed");
 					sendResponse({"success": false, "errorCode": "ERRCI004"});
-				});
-			}
-			catch (err)
-			{
-				console.warn("background.createIdentity", "ERRCI003", "serializeBlock2 failed");
+				}
+			}).catch(err => {
+				console.warn("background.createIdentity", "ERRCI003", "aesGcmEncrypt failed");
 				sendResponse({"success": false, "errorCode": "ERRCI003"});
-			}
-		}).catch(err => {
-			console.warn("background.createIdentity", "ERRCI002", "aesGcmEncrypt failed");
+			});
+		}
+		else
+		{
+			console.warn("background.createIdentity", "ERRCI002", "Length of enscryptedNewRescueCode should be 32");
 			sendResponse({"success": false, "errorCode": "ERRCI002"});
-		});
+		}
 	}).catch(err => {
 		console.warn("background.createIdentity", "ERRCI001", "enscrypt failed");
 		sendResponse({"success": false, "errorCode": "ERRCI001"});
 	});
 }
-function importIdentity(ti, rescueCode, enscryptedRescueCode, sendResponse)
+function importIdentity(ti, rescueCode, enscryptedRescueCode, newPassword, sendResponse)
 {
-	validateTextualIdentity(ti).then(validationResult => {  //will also return success == true if the textual identity is only partly entered!
-		if (validationResult.success)
-		{
-			try
+	if (rescueCode == null && enscryptedRescueCode == null)
+	{
+		console.warn("background.importIdentity", "ERRII006", "Missing rescueCode or enscryptedRescueCode");
+		sendResponse({"success": false, "errorCode": "ERRII006"});
+	}
+	else
+	{
+		validateTextualIdentity(ti).then(validationResult => { //will also return success == true if the textual identity is only partly entered!
+			if (validationResult.success)
 			{
-				let extractedBlock2 = parseBlockType2(ti);
-				textualIdentity = ti;
-				chrome.storage.local.set({"textualIdentity": ti});
-				//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
-				let prms = enscryptedRescueCode == null ?  enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptLogN, extractedBlock2.enscryptIter, (step, max) => {
-					chrome.runtime.sendMessage({'action': 'importIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
-				}) : new Promise(resolve => resolve(enscryptedRescueCode));
-				prms.then(enscryptedPwd => {
-					//console.log("enscryptedPwd", JSON.stringify(Array.from(enscryptedPwd)));
-					aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedPwd, new Uint8Array(12)).then(decrypted => {
-						let IUK = new Uint8Array(decrypted);
-						setIMK(enhash(localSodium, IUK));
-						memzero(IUK);
-						sendResponse({"success": true, "name": ab2hex(localSodium.crypto_hash_sha256(getIMK())).substr(0,8)});
+				try
+				{
+					let extractedBlock2 = parseBlockType2(ti);
+					textualIdentity = ti;
+					chrome.storage.local.set({"textualIdentity": ti});
+					//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
+					let prms = enscryptedRescueCode == null ? enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptLogN, extractedBlock2.enscryptIter, (step, max) => {
+						chrome.runtime.sendMessage({'action': 'importIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
+					}) : new Promise(resolve => resolve(enscryptedRescueCode));
+					prms.then(enscryptedRescueCodeLocal => {
+						//console.log("enscryptedRescueCodeLocal", JSON.stringify(Array.from(enscryptedRescueCodeLocal)));
+						aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedRescueCodeLocal, new Uint8Array(12)).then(IUK => {
+							let newIMK = enhash(IUK);
+							memzero(IUK);
+							let newPasswordAB = str2ab(newPassword);//FIXME: dont allow empty password
+							setIMK(newIMK, newPasswordAB).then(result => {
+								memzero(newIMK);
+								//do not memzero newPasswordAB
+								if (result && result.success)
+								{
+									sendResponse({"success": true, "name": getIdentityName()});
+								}
+								else
+								{
+									console.warn("background.importIdentity", "ERRII007", "setIMK failed");
+									sendResponse({"success": false, "errorCode": "ERRII007"});
+								}
+							}).catch(err => {
+								memzero(newIMK);
+								//do not memzero newPasswordAB
+								console.warn("background.importIdentity", "ERRII006", "setIMK threw error", err);
+								sendResponse({"success": false, "errorCode": "ERRII006"});
+							});
+						}).catch(err => {
+							console.warn("background.importIdentity", "ERRII004", "aesGcmDecrypt IUK failed");
+							sendResponse({"success": false, "errorCode": "ERRII004"});
+						});
 					}).catch(err => {
-						console.warn("background.importIdentity", "ERRII004", "aesGcmDecrypt failed");
-						sendResponse({"success": false, "errorCode": "ERRII004"});
+						console.warn("background.importIdentity", "ERRII003", "enscrypting rescueCode failed");
+						sendResponse({"success": false, "errorCode": "ERRII003"});
 					});
-				}).catch(err => {
-					console.warn("background.importIdentity", "ERRII003", "enscrypting rescueCode failed");
-					sendResponse({"success": false, "errorCode": "ERRII003"});
-				});
+				}
+				catch(err)
+				{
+					console.warn("background.importIdentity", "ERRII002");
+					sendResponse({"success": false, "errorCode": "ERRII002"});
+				}
 			}
-			catch(err)
+			else
 			{
-				console.warn("background.importIdentity", "ERRII002");
-				sendResponse({"success": false, "errorCode": "ERRII002"});
+				console.warn("background.importIdentity", "ERRII001", "Invalid textualIdentity");
+				sendResponse({"success": false, "errorCode": "ERRII001"});
 			}
-		}
-		else
-		{
-			console.warn("background.importIdentity", "ERRII001", "Invalid textualIdentity");
-			sendResponse({"success": false, "errorCode": "ERRII001"});
-		}
-	}).catch(err => {
-		console.warn("background.importIdentity", "ERRII000", "Validating textualIdentity failed");
-		sendResponse({"success": false, "errorCode": "ERRII000"});
-	});
+		}).catch(err => {
+			console.warn("background.importIdentity", "ERRII000", "Validating textualIdentity failed");
+			sendResponse({"success": false, "errorCode": "ERRII000"});
+		});
+	}
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -264,13 +415,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				{
 					try {
 						showBadgeError("", 0, tabId);
-						let request = getPostDataQueue[tabId];
+						let origRequest = getPostDataQueue[tabId];
 						delete getPostDataQueue[tabId];
-						//chrome.tabs.sendMessage(tabId, getPostDataAsync(request.href, request.windowLoc, tabId), data => {});
-						if (tabsResp[0].url === request.windowLoc)
+						//chrome.tabs.sendMessage(tabId, getPostDataAsync(origRequest.href, origRequest.windowLoc, tabId), data => {});
+						if (tabsResp[0].url === origRequest.windowLoc)
 						{
-							getPostDataAsync(request.href, request.windowLoc, data => {
-								//console.log("background.requestAction", "getPostDataAsync.sendMessage", data);
+							let passwdAB = request.password == null ? null : str2ab(request.password); //is memzero'd by getPostDataAsync
+							setSavepwd(request.savepwd);
+							getPostDataAsync(origRequest.href, origRequest.windowLoc, passwdAB, data => {
 								data.action = "getPostDataResp";
 								chrome.tabs.sendMessage(tabId, data, resp => {
 									//console.log("background.requestAction", "resp", resp);
@@ -300,22 +452,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		});
 		return true;
 	}
+	else if (request.action === "hasPendingRequest")
+	{
+		chrome.tabs.query({'active': true, 'currentWindow': true}, tabsResp => {
+			if (chrome.runtime.lastError)
+			{
+				console.warn("background.requestAction", "ERRRA003");
+				sendResponse({"success": false, "hasPendingRequest": false, "errorCode": "ERRRA003"});
+			}
+			else if (tabsResp != null && tabsResp.length)
+			{
+				let tabId = tabsResp[0].id;
+				sendResponse({"success": true, "hasPendingRequest": tabId in getPostDataQueue});
+			}
+		});
+		return true;
+	}
+	else if (request.action === "hasPassword")
+	{
+		sendResponse({"hasPassword": hasPassword()});
+	}
+	else if (request.action === "isSavepwd")
+	{
+		sendResponse({"isSavepwd": savepwd});
+	}
 	else if (request.action === "hasIdentity")
 	{
 		if (hasIMK())
-		{
-			crypto.subtle.digest('SHA-256', getIMK()).then(sha256result => {
-				sendResponse({"hasIdentity": true, "name": ab2hex(sha256result).substr(0,8), "textualIdentity": textualIdentity});
-			}).catch(err => {
-				console.warn("background.hasIdentity", "ERRHI000");
-				sendResponse({"success": false, "errorCode": "ERRHI000"});
-			});
-			return true;
-		}
+			sendResponse({"hasIdentity": true, "isSavepwd": savepwd, "name": getIdentityName(), "textualIdentity": textualIdentity});
 		else
-		{
-			sendResponse({"hasIdentity": false});
-		}
+			sendResponse({"hasIdentity": false, "isSavepwd": false});
 	}
 	else if (request.action === "eraseIdentity")
 	{
@@ -332,20 +498,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 	else if (request.action === "importIdentity")
 	{
-		importIdentity(request.textualIdentity, request.rescueCode, request.enscryptedRescueCode, sendResponse);
+		let enscryptedRescueCodeLocal = null;
+		if ("enscryptedRescueCode" in request)
+		{
+			enscryptedRescueCodeLocal = new Uint8Array(request.enscryptedRescueCode);
+			memzero(request.enscryptedRescueCode);
+		}
+		importIdentity(request.textualIdentity, request.rescueCode, enscryptedRescueCodeLocal, request.password, sendResponse);
 		return true;
 	}
 	else
 		console.warn("background", "request action not recognised", request.action);
 });
 
-chrome.storage.local.get(["IMK", "textualIdentity"], function(result){
-	if (result.IMK)
-	{
-		setIMK(new Uint8Array(result.IMK));
-		memzero(result.IMK);
-		delete result.IMK;
-	}
+chrome.storage.local.get(["textualIdentity"], function(result){
 	if (result.textualIdentity)
 	{
 		textualIdentity = result.textualIdentity;
@@ -392,15 +558,15 @@ function zeropad(nmbr, len)
 }
 function memzero(e)
 {
-	if (e instanceof Uint8Array)
+	if (e.constructor === Uint8Array)
 		for (let i = 0; i < e.length; i++)
 			e[i] = 0;
-	else if (e instanceof BN)
+	else if (e.constructor === BN)
 		for (let i = 0; i < e.words.length; i++)
 			e.words[i] = 0;
 	else if (Array.isArray(e)) //TODO: check that setting the values to null is better than setting them to 0
 		for (let i = 0; i < e.length; i++)
-			e[i] = null;
+			e[i] = 0;
 	else
 		throw new Error("Only Uint8Array, Array and BN instances can be wiped");
 }
@@ -410,8 +576,8 @@ function str2ab(str) //WARNING: nameclash with the same method in utils.js //str
 }
 function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.MAX_SAFE_INTEGER or ab.length == 6
 {
-	if (!(ab instanceof Uint8Array))
-		throw new Error("First argument \"ab\" should be a  Uint8Array");
+	if (ab.constructor !== Uint8Array)
+		throw new Error("First argument \"ab\" should be a Uint8Array");
 	if (ab.length > 6)
 		throw new Error("Max length of Uint8Array is 6");
 	let result = 0;
@@ -427,9 +593,9 @@ function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.M
 function ab2hex(ab) //arraybuffer (Uint8Array) to hex
 {
 	let ui8a = null;
-	if (ab instanceof ArrayBuffer)
+	if (ab.constructor === ArrayBuffer)
 		ui8a = new Uint8Array(ab);
-	else if (ab instanceof Uint8Array)
+	else if (ab.constructor === Uint8Array)
 		ui8a = ab;
 	else
 		throw new Error("First argument \"ab\" should be an Uint8Array or an ArrayBuffer");
@@ -438,7 +604,7 @@ function ab2hex(ab) //arraybuffer (Uint8Array) to hex
 	{
 		result.push(('00'+i.toString(16)).slice(-2));
 	}
-	if (ab instanceof ArrayBuffer)
+	if (ab.constructor === ArrayBuffer)
 		memzero(ui8a);
 	return result.join('');
 }
@@ -450,10 +616,10 @@ function ui8aXOR(a, b) //beware: result is written back into a
 {
 	for (let i = 0; i < a.length; i++)
 	{
-		a[i] =  a[i] ^ b[i];
+		a[i] = a[i] ^ b[i];
 	}
 }
-function sleep(ms)
+async function sleep(ms)
 {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -478,14 +644,14 @@ async function enscrypt(scrypt, pwd, salt, logN, iterations, callback)
 	callback(iterations, iterations);
 	return xorresult;
 }
-function enhash(sodium, input)
+function enhash(input)
 {
 	if (input.constructor === Uint8Array && input.length === 32)
 	{
 		let output = new Uint8Array(32);
 		for (let i = 0; i < 16; i++)
 		{
-			input = sodium.crypto_hash_sha256(input);
+			input = localSodium.crypto_hash_sha256(input);
 			ui8aXOR(output, input);//result of XOR is written back into output
 		}
 		memzero(input);
@@ -495,48 +661,49 @@ function enhash(sodium, input)
 		throw new Error('Argument 1 "input" should be a Uint8Array of length 32');
 }
 
-function aesGcmEncrypt(data, additionalData, password, iv)
+async function aesGcmEncrypt(data, additionalData, password, iv)
 {
 	return aesGcmCrypt(true, data, additionalData, password, iv);
 }
-function aesGcmDecrypt(data, additionalData, password, iv)
+async function aesGcmDecrypt(data, additionalData, password, iv)
 {
 	return aesGcmCrypt(false, data, additionalData, password, iv);
 }
-function aesGcmCrypt(isEncrypt, data, additionalData, password, iv)
+async function aesGcmCrypt(isEncrypt, data, additionalData, password, iv)
 {
 	if (data.constructor === Uint8Array && data.length > 0)
 	{
-		if (additionalData.constructor === Uint8Array && additionalData.length > 0)
+		if (additionalData == null || (additionalData.constructor === Uint8Array && additionalData.length > 0))
 		{
 			if (password.constructor === Uint8Array && password.length === 32)
 			{
 				if (iv.constructor === Uint8Array && iv.length === 12)
 				{
+					let cData = { "name": "AES-GCM", "iv": iv };//, "tagLength": 128 };
+					if (additionalData != null)
+					{
+						cData.additionalData = additionalData;
+					}
 					if (isEncrypt)
 					{
-						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["encrypt"]).then(key =>
-							crypto.subtle.encrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData, "tagLength": 128 }, key, data)
-						);
+						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["encrypt"]).then(key => crypto.subtle.encrypt(cData, key, data)).then(encr => new Uint8Array(encr));
 					}
 					else
 					{
-						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["decrypt"]).then(key =>
-							crypto.subtle.decrypt({ "name": "AES-GCM", "iv": iv, "additionalData": additionalData, "tagLength": 128 }, key, data)
-						);
+						return crypto.subtle.importKey("raw", password, { "name": "AES-GCM", length: 256 }, false, ["decrypt"]).then(key => crypto.subtle.decrypt(cData, key, data)).then(decr => new Uint8Array(decr));
 					}
 				}
 				else
-					throw new Error('Argument 4 "iv" should be a Uint8Array of length 12');
+					return Promise.reject('Argument 4 "iv" should be a Uint8Array of length 12');
 			}
 			else
-				throw new Error('Argument 3 "password" should be a Uint8Array of length 32');
+				return Promise.reject('Argument 3 "password" should be a Uint8Array of length 32');
 		}
 		else
-			throw new Error('Argument 2 "additionalData" should be a non-empty Uint8Array');
+			return Promise.reject('Argument 2 "additionalData" should be a non-empty Uint8Array or null');
 	}
 	else
-		throw new Error('Argument 1 "data" should be a non-empty Uint8Array');
+		return Promise.reject('Argument 1 "data" should be a non-empty Uint8Array');
 }
 
 async function validateTextualIdentity(ti)
@@ -596,13 +763,9 @@ function parseBlockType2(ti)
 	else
 		throw new Error('base56decoded length of first argument "ti" should be 73, 127, 159, 191 or 223');
 }
-function serializeBlock2(dataToDecrypt, additionalData)
+async function serializeBlock2(dataToDecrypt, additionalData)
 {
 	let data = new Uint8Array(73);
-	if (additionalData instanceof ArrayBuffer)
-		additionalData = new Uint8Array(additionalData);
-	if (dataToDecrypt instanceof ArrayBuffer)
-		dataToDecrypt = new Uint8Array(dataToDecrypt);
 	if (dataToDecrypt.constructor === Uint8Array && dataToDecrypt.length === 48)
 	{
 		if (additionalData.constructor === Uint8Array && additionalData.length === 25)
@@ -626,22 +789,22 @@ function serializeBlock2(dataToDecrypt, additionalData)
 			});
 		}
 		else
-			throw new Error('Argument 2 "additionalData" should be a Uint8Array of length 25');
+			return Promise.reject('Argument 2 "additionalData" should be a Uint8Array of length 25');
 	}
 	else
-		throw new Error('Argument 1 "dataToDecrypt" should be a Uint8Array of length 48');
+		return Promise.reject('Argument 1 "dataToDecrypt" should be a Uint8Array of length 48');
 }
 
 
-function base64url_encode(sodium, str)
+function base64url_encode(str)
 {
-	return sodium.to_base64(sodium.from_string(str), sodium.base64_variants.URLSAFE_NO_PADDING);
+	return localSodium.to_base64(localSodium.from_string(str), localSodium.base64_variants.URLSAFE_NO_PADDING);
 }
 //uses BigNum, https://github.com/indutny/bn.js/
 function base56encode(i)
 {
 	let bi;
-	if (i instanceof BN)
+	if (i.constructor === BN)
 		bi = i;
 	else if (typeof i == "string" || i.constructor === Uint8Array)
 		bi = new BN(i);
@@ -685,11 +848,11 @@ function base56decode(s)
 function isValidHostname(hn) // Must be punycode-encoded, like `new URL().hostname` is;
 {
 	/*
-	Hostnames are composed of series of labels concatenated with dots, as are all domain names.
-	For example, "en.wikipedia.org" is a hostname. Each label must be between 1 and 63 characters long, and the entire hostname has a maximum of 255 characters.
-	RFCs mandate that a hostname's labels may contain only the ASCII letters 'a' through 'z' (case-insensitive), the digits '0' through '9', and the hyphen. Hostname labels cannot begin or end with a hyphen. No other symbols, punctuation characters, or blank spaces are permitted.
+Hostnames are composed of series of labels concatenated with dots, as are all domain names.
+For example, "en.wikipedia.org" is a hostname. Each label must be between 1 and 63 characters long, and the entire hostname has a maximum of 255 characters.
+RFCs mandate that a hostname's labels may contain only the ASCII letters 'a' through 'z' (case-insensitive), the digits '0' through '9', and the hyphen. Hostname labels cannot begin or end with a hyphen. No other symbols, punctuation characters, or blank spaces are permitted.
 	*/
-	if (hn == null || typeof hn != "string" || hn.length == 0 || hn.length  > 255 || !/^[a-zA-Z0-9\.\-]+$/.test(hn))
+	if (hn == null || typeof hn != "string" || hn.length == 0 || hn.length > 255 || !/^[a-zA-Z0-9\.\-]+$/.test(hn))
 		return false;
 	let splt = hn.split(".");
 	for (let lbl of splt)

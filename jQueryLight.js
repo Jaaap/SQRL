@@ -29,7 +29,9 @@ jqo.prototype.addClass =     function addClass(name)	{ this.each(function(i,elem
 jqo.prototype.removeClass =  function removeClass(name)	{ this.each(function(i,elem) { elem.classList.remove(name); }); return this; };
 jqo.prototype.toggleClass =  function toggleClass(name,on)	{ this.each(function(i,elem) { if(typeof on != "undefined") { elem.classList[on ? "add" : "remove"](name); } else { elem.classList.toggle(name);} }); return this; };
 jqo.prototype.hasClass =     function hasClass(name)	{ return this.length && this[0].classList.contains(name); };
-jqo.prototype.val =		function $val(val)	{ if (typeof val == "undefined") { return this.length ? ((this[0].tagName == "SELECT") ? this[0].options[this[0].selectedIndex].value : this[0].value) : ""; } else { this.each(function(j,elem) { if (elem.tagName == "SELECT") { var isArr = Array.isArray(val); for (var i = 0; i < elem.options.length; i++) { var opt = elem.options[i]; if (isArr) { opt.selected = val.indexOf(opt.value) > -1; } else if (opt.value == val) { opt.selected=true; } } } else { elem.value = val; }}); return this; } };
+jqo.prototype.val =		function $val(val)	{ if (typeof val == "undefined") { return this.length ? ((this[0].tagName == "SELECT") ? this[0].options[this[0].selectedIndex].value : this[0].value) : ""; } else { this.each(function(j,elem) { if (elem.tagName == "SELECT") { var isArr = Array.isArray(val); for (var i = 0; i < elem.options.length; i++) { var opt = elem.options[i]; if (isArr) { opt.selected = val.indexOf(opt.value) > -1; } else if (opt.value == val) { opt.selected=true; } } }
+else if (elem.type == "checkbox" || elem.type == "radio") { elem.checked = val; }
+else { elem.value = val; }}); return this; } };
 jqo.prototype.text =	function text(txt)	{ if (typeof txt == "undefined") { return this.length ? this[0].value||this[0].textContent : ""; } else { this.each(function(i,elem) { elem.textContent = txt; }); return this; } };
 jqo.prototype.cut =		function(act)	{ return this.bind("cut",act); };
 jqo.prototype.copy =	function(act)	{ return this.bind("copy",act); };
