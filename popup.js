@@ -32,6 +32,12 @@ function onTextualIdentityKeyUp(evt)
 	validateTextualIdentity(ta.value).then(validationData => {
 		$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
 		$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
+		chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value}, result => {
+			if (!result || !result.success)
+			{
+				console.log("importPartialIdentity", result);
+			}
+		});
 	}).catch(err => {
 		console.warn("popup.onTextualIdentityKeyUp", "ERRVA000", err);
 	});
@@ -137,6 +143,11 @@ function setPopupState()
 		$('#tab3,#tab4,#tab5,#tab6').enable(result.hasIdentity);
 		$('#identityhash').text(result.hasIdentity && "name" in result ? result.name : "");
 		$('form#export textarea[name="identity"]').val(result.hasIdentity && "textualIdentity" in result ? result.textualIdentity : "");
+		if ("partialTextualIdentity" in result && result.partialTextualIdentity != null && result.partialTextualIdentity != "")
+		{
+			$('form#import textarea[name="identity"]').val(result.partialTextualIdentity);
+			$('#tab2')[0].checked = true;
+		}
 	});
 }
 function init()

@@ -1,6 +1,6 @@
 {
 "use strict";
-let localSodium = null, textualIdentity = null, sodiumLoadQueue = [], getPostDataQueue = {};
+let localSodium = null, textualIdentity = null, partialTextualIdentity = null, sodiumLoadQueue = [], getPostDataQueue = {};
 window.sodium = { onload: sod => {
 	localSodium = sod;
 	for (func of sodiumLoadQueue)
@@ -481,7 +481,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		if (hasIMK())
 			sendResponse({"hasIdentity": true, "isSavepwd": savepwd, "name": getIdentityName(), "textualIdentity": textualIdentity});
 		else
-			sendResponse({"hasIdentity": false, "isSavepwd": false});
+			sendResponse({"hasIdentity": false, "isSavepwd": false, "partialTextualIdentity": partialTextualIdentity});
 	}
 	else if (request.action === "eraseIdentity")
 	{
@@ -505,7 +505,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			memzero(request.enscryptedRescueCode);
 		}
 		importIdentity(request.textualIdentity, request.rescueCode, enscryptedRescueCodeLocal, request.password, sendResponse);
+		partialTextualIdentity = null;
 		return true;
+	}
+	else if (request.action === "importPartialIdentity")
+	{
+		partialTextualIdentity = request.textualIdentity;
 	}
 	else
 		console.warn("background", "request action not recognised", request.action);
