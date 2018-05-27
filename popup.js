@@ -42,11 +42,6 @@ function onTextualIdentityKeyUp(evt)
 		console.warn("popup.onTextualIdentityKeyUp", "ERRVA000", err);
 	});
 }
-function onPrintIdentityClick(evt)
-{
-	evt.preventDefault();
-	window.print();
-}
 
 
 
@@ -67,11 +62,14 @@ function onCreateFormSubmit(evt)
 				elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
 				if (result.success)
 				{
+					window.print();
+					/*
 					elems.identity.value = "";
 					elems.rescuecode.value = "";
 					elems.verifyrescuecode.value = "";
 					elems.enscryptedrescuecode.value = "";
 					setPopupState();
+					*/
 				}
 			});
 		}
@@ -129,9 +127,12 @@ function onPasswdFormSubmit(evt)
 	let elems = this.elements;
 	chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": elems.password.value, "savepwd": elems.savepwd.checked}, resp => {
 		//console.log("popup.onPasswdFormSubmit", "sendPostDataToActiveTab");
-		if (resp != null && resp.success && resp.hasOpenRequest)
+		if (resp != null && resp.success)
 		{
-			window.close();
+			if (resp.hasOpenRequest)
+				window.close();
+			else
+				elems.password.value = "";
 		}
 	});
 }
@@ -183,13 +184,11 @@ function init()
 	}
 	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
 	$('button#generateNewIdentity').click(onGenerateNewIdentityClick);
-	$('button#printIdentity').click(onPrintIdentityClick);
 	$('form#create').submit(onCreateFormSubmit);
 	$('form#import').submit(onImportFormSubmit);
 	$('form#changepassword').submit(onChangepasswordFormSubmit);
 	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
 	$('form#eraseidentity').submit(onEraseidentityFormSubmit);
-	//$('form#create input[name="rescuecode"]+b').click(onRescuecodeRevealClick);
 	$('form#create input[name="verifyrescuecode"]').focus(onVerifyrescuecodeFocus).blur(onVerifyrescuecodeBlur).keyup(onVerifyrescuecodeKeyUp);
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 	$('form#passwd').submit(onPasswdFormSubmit);

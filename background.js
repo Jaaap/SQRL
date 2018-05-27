@@ -136,8 +136,17 @@ async function setIMK(newIMK, newPasswordAB)
 }
 function eraseIMK()
 {
+	memzero(IMK);
 	IMK = null;
 	chrome.storage.local.remove(["encrIMK"], () => {});
+}
+function erasePasswordEnscrypted()
+{
+	if (passwordEnscrypted != null)
+	{
+		memzero(passwordEnscrypted);
+	}
+	passwordEnscrypted = null;
 }
 function hasPassword()
 {
@@ -485,6 +494,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 	else if (request.action === "eraseIdentity")
 	{
+console.log(1);
+		erasePasswordEnscrypted();
+console.log(2);
 		eraseIMK();
 		chrome.storage.local.remove(["identityDataType2"], () => {
 			sendResponse(chrome.runtime.lastError);

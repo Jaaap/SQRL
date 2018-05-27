@@ -16,7 +16,7 @@ html,body { display: flex; margin: 0; flex-direction: column; }
 body,label,input { font-size: 17px; }
 /* Fx mac: 784w x 584h */
 body { font-family: Verdana, Helvetica; width: 680px; height: 584px; }
-body.passwdOnly { height: auto; }
+body.passwdOnly { height: 122px; }
 body.passwdOnly>main>div { display: none; }
 button {
 	text-align: center;
@@ -56,8 +56,6 @@ label.pwd { display: inline-block; margin: 0 0 12px 0; }
 label>span { display: inline-block; width: 152px; vertical-align: top; }
 label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
 label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress,label>button { width: 270px; vertical-align: super; }
-span.twobtns>button { width: 90px; }
-span.twobtns>button+button { width: 178px; margin-left: 2px; }
 label>textarea { border: 0 none; height: 150px; line-height: 22px; }
 #import label>textarea,#export label>textarea { height: 300px; }
 label>dl { display: inline-block; width: 300px; margin: 0; }
@@ -87,7 +85,7 @@ div.print { display: none; }
 	h1 { margin: 0; font-size: 108px; }
 	h1>img { width: 64px; margin-right: 8px; }
 	hr { border: 0 none; display: inline-block; width: 90%; border-top: 5px dashed #000; vertical-align: top; }
-	div>form,label,form#passwd,input[name="tab"],span.twobtns,label+b,br { display: none; }
+	div>form,label,form#passwd,input[name="tab"],label+b,br { display: none; }
 	div.print,div>form.print { display: block; }
 	label.print { display: inline-block; width: 100%; }
 	label>span { font-size: 48px; display: block; margin: 0.5em 0; }
@@ -119,7 +117,7 @@ div.print { display: none; }
 				<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}"/></label><br/>
 				<label><span>Choose Password</span><input type="password" name="password"/></label><br/>
 				<label><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
-				<label><span></span></label><span class="twobtns"><button type="button" id="printIdentity">🖨 Print</button><button>Use this Identity</button></span><br/>
+				<label><span></span><button>🖨 Print &amp; Use this Identity</button></label><br/>
 			</form>
 		</div>
 	</div>
