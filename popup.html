@@ -92,6 +92,14 @@ div.print { display: none; }
 	textarea,input[type="text"] { width: 100%; font-size: 36px; line-height: 48px; }
 	textarea { height: 15em; margin-bottom: 1em; }
 }
+.shake { animation: 0.4s linear 0s normal none 1 running shake; }
+@keyframes shake {
+	8%, 41% { transform: translate(-10px, 0); }
+	25%, 58% { transform: translate(10px, 0); }
+	75% { transform: translate(-5px, 0); }
+	92% { transform: translate(5px, 0); }
+	0%, 100% { transform: translate(0, 0); }
+}
 </style>
 </head>
 <body>

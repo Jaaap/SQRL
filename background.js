@@ -30,12 +30,6 @@ chrome.storage.local.get(["encrIMK", "passIv", "passwordEnscryptSalt", "savepwd"
 		savepwd = result.savepwd;
 	}
 });
-function getIdentityName()
-{
-	if (passIv == null)
-		return null;
-	return ab2hex(passIv).substr(0,4);
-}
 function setSavepwd(newSavepwd)
 {
 	savepwd = newSavepwd;
@@ -47,10 +41,39 @@ function hasIMK()
 }
 async function getIMK(passwd)
 {
+	if (!hasIMK())
+		throw new Error('ERRGI000', "Missing IMK");
 	if (passwd == null && passwordEnscrypted == null)
-		return Promise.reject('ERRGI001: Missing password');
-	if (hasIMK())
+		throw new Error('ERRGI001', "Missing password");
+	if (passwordEnscrypted == null)
 	{
+		passwordEnscrypted = await enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, passwd, passwordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {});
+	}
+	if (passwordEnscrypted.length !== 32)
+	{
+		memzero(passwordEnscrypted);
+		console.warn("background.getIMK", "ERRGI002", "Length of passwordEnscrypted should be 32");
+		throw new Error('ERRGI002', "Length of passwordEnscrypted should be 32");
+	}
+
+	try
+	{
+		let decryptedIMK = await aesGcmDecrypt(IMK, null, passwordEnscrypted, passIv);
+		if (!savepwd)
+		{
+			memzero(passwordEnscrypted);
+			passwordEnscrypted = null;
+		}
+		return decryptedIMK;
+	}
+	catch (err)
+	{
+		memzero(passwordEnscrypted);
+		passwordEnscrypted = null;
+		console.warn("background.getIMK", "ERRGI003", err);//FIXME
+		throw new Error('ERRGI003', "Wrong password");
+	}
+/*
 		let prms = passwordEnscrypted == null ? enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, passwd, passwordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {}) : new Promise(resolve => resolve(passwordEnscrypted));
 		return prms.then(passwordEnscryptedLocal => {
 			if (passwordEnscryptedLocal.length === 32)
@@ -80,6 +103,7 @@ async function getIMK(passwd)
 		});
 	}
 	return Promise.reject('ERRGI000: Missing IMK');
+*/
 }
 async function setIMK(newIMK, newPasswordAB)
 {
@@ -154,7 +178,7 @@ function hasPassword()
 }
 
 
-function getPostDataAsync(href, windowLoc, passwdFromPopupAB, sendResponse, tabId)
+function getPostDataAsync(href, windowLoc, passwdFromPopupAB, callback, tabId)
 {
 //console.log("backgroud.getPostDataAsync", href, windowLoc);
 	if (passwdFromPopupAB != null && passwdFromPopupAB.constructor !== Uint8Array)
@@ -199,10 +223,10 @@ console.log(new Uint8Array(HMAC256Hash2));
 									let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
 									memzero(SitePrivateKey);
 
-									sendResponse({"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
+									callback({"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
 								}).catch(err => {
 									console.warn("background.getPostDataAsync", "ERRPD008", "getIMK failed");
-									sendResponse({"success": false, "errorCode": "ERRPD008"});
+									callback({"success": false, "errorCode": "ERRPD008"});
 								});
 							};
 							if (localSodium == null) //Fennec
@@ -219,7 +243,7 @@ console.log(new Uint8Array(HMAC256Hash2));
 						{
 							showBadgeError("PASS", 6, tabId);
 							console.warn("background.getPostDataAsync", "ERRPD006", "Missing password");
-							sendResponse({"success": false, "errorCode": "ERRPD006"});
+							callback({"success": false, "errorCode": "ERRPD006"});
 							return true;
 						}
 					}
@@ -227,7 +251,7 @@ console.log(new Uint8Array(HMAC256Hash2));
 					{
 						showBadgeError("IDTY", 6, tabId);
 						console.warn("background.getPostDataAsync", "ERRPD005", "Missing identity");
-						sendResponse({"success": false, "errorCode": "ERRPD005"});
+						callback({"success": false, "errorCode": "ERRPD005"});
 						return true;
 					}
 				}
@@ -235,28 +259,28 @@ console.log(new Uint8Array(HMAC256Hash2));
 				{
 					showBadgeError("COA", 0, tabId);
 					console.warn("background.getPostDataAsync", "ERRPD004", "Cross-Origin Authentication attempt");
-					sendResponse({"success": false, "errorCode": "ERRPD004"});
+					callback({"success": false, "errorCode": "ERRPD004"});
 					return true;
 				}
 			}
 			else
 			{
 				console.warn("background.getPostDataAsync", "ERRPD003", "Invalid window location");
-				sendResponse({"success": false, "errorCode": "ERRPD003"});
+				callback({"success": false, "errorCode": "ERRPD003"});
 				return true;
 			}
 		}
 		else
 		{
 			console.warn("background.getPostDataAsync", "ERRPD002", "Invalid link location");
-			sendResponse({"success": false, "errorCode": "ERRPD002"});
+			callback({"success": false, "errorCode": "ERRPD002"});
 			return true;
 		}
 	}
 	else
 	{
 		console.warn("background.getPostDataAsync", "ERRPD001", "Invalid sqrl link");
-		sendResponse({"success": false, "errorCode": "ERRPD001"});
+		callback({"success": false, "errorCode": "ERRPD001"});
 		return true;
 	}
 }
@@ -342,7 +366,7 @@ function importIdentity(ti, rescueCode, enscryptedRescueCode, newPassword, sendR
 								//do not memzero newPasswordAB
 								if (result && result.success)
 								{
-									sendResponse({"success": true, "name": getIdentityName()});
+									sendResponse({"success": true});
 								}
 								else
 								{
@@ -425,22 +449,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 					try {
 						showBadgeError("", 0, tabId);
 						let origRequest = getPostDataQueue[tabId];
-						delete getPostDataQueue[tabId];
-						//chrome.tabs.sendMessage(tabId, getPostDataAsync(origRequest.href, origRequest.windowLoc, tabId), data => {});
 						if (tabsResp[0].url === origRequest.windowLoc)
 						{
 							let passwdAB = request.password == null ? null : str2ab(request.password); //is memzero'd by getPostDataAsync
 							setSavepwd(request.savepwd);
 							getPostDataAsync(origRequest.href, origRequest.windowLoc, passwdAB, data => {
-								data.action = "getPostDataResp";
-								chrome.tabs.sendMessage(tabId, data, resp => {
-									//console.log("background.requestAction", "resp", resp);
-								});
+								if (data.success)
+								{
+									delete getPostDataQueue[tabId];
+									data.action = "getPostDataResp";
+									chrome.tabs.sendMessage(tabId, data, resp => {
+										//console.log("background.requestAction", "resp", resp);
+									});
+									sendResponse({"success": true, "hasOpenRequest": true}); // to popup
+								}
+								else
+								{
+									sendResponse(data); // to popup
+								}
 							}, tabId);
-							sendResponse({"success": true, "hasOpenRequest": true});
 						}
 						else
 						{
+							delete getPostDataQueue[tabId];
 							//console.log("background.requestAction", "ERRRA003", "tab's location url has changed");
 							sendResponse({"success": true, "hasOpenRequest": false});
 						}
@@ -488,7 +519,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	else if (request.action === "hasIdentity")
 	{
 		if (hasIMK())
-			sendResponse({"hasIdentity": true, "isSavepwd": savepwd, "name": getIdentityName(), "textualIdentity": textualIdentity});
+			sendResponse({"hasIdentity": true, "isSavepwd": savepwd, "textualIdentity": textualIdentity});
 		else
 			sendResponse({"hasIdentity": false, "isSavepwd": false, "partialTextualIdentity": partialTextualIdentity});
 	}

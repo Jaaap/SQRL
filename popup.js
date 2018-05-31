@@ -126,23 +126,38 @@ function onPasswdFormSubmit(evt)
 	evt.preventDefault();
 	let elems = this.elements;
 	chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": elems.password.value, "savepwd": elems.savepwd.checked}, resp => {
-		//console.log("popup.onPasswdFormSubmit", "sendPostDataToActiveTab");
-		if (resp != null && resp.success)
+		//console.log("popup.onPasswdFormSubmit", "sendPostDataToActiveTab", JSON.stringify(resp));
+		if (resp == null)
+			showGenericError("onPasswdFormSubmit", "ERRPFS--1", "Problem communicating with background");
+		else
 		{
-			if (resp.hasOpenRequest)
-				window.close();
+			if (resp.success)
+			{
+				if (resp.hasOpenRequest)
+					window.close();
+				else
+					elems.password.value = "";
+			}
+			else if ("errorCode" in resp)
+			{
+				if (resp.errorCode == "ERRPD008")
+					showPasswordError(elems.password);
+				else
+					showGenericError("onPasswdFormSubmit", "ERRPFS--2", "Unknown error code " + resp.errorCode);
+			}
 			else
-				elems.password.value = "";
+				showGenericError("onPasswdFormSubmit", "ERRPFS--3", "Missing error code");
 		}
 	});
 }
 function setPopupState()
 {
 	chrome.runtime.sendMessage({'action': 'hasIdentity' }, result => {
+		$('form#passwd input').enable(result.hasIdentity);
 		$('form#passwd input[name="savepwd"]').val(result.isSavepwd);
 		$('#tab1,#tab2').enable(!result.hasIdentity);
 		$('#tab3,#tab4,#tab5,#tab6').enable(result.hasIdentity);
-		$('#identityhash').text(result.hasIdentity && "name" in result ? result.name : "");
+		$('#identityhash').text(result.hasIdentity && "textualIdentity" in result ? result.textualIdentity.substr(0, 4) : "");
 		$('form#export textarea[name="identity"]').val(result.hasIdentity && "textualIdentity" in result ? result.textualIdentity : "");
 		if ("partialTextualIdentity" in result && result.partialTextualIdentity != null && result.partialTextualIdentity != "")
 		{

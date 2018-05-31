@@ -63,4 +63,14 @@ async function getVerificationChar(lineChars, lineIndex)
 //console.log("getVerificationChar", lineChars, lineIndex, base56chars[verificationInt]);
 	return base56chars[verificationInt];
 }
-
+function showGenericError(src, code, txt)
+{
+	//FIXME
+	alert(src + "\n" + code + "\n" + txt);
+}
+function showPasswordError(input)
+{
+	input.classList.add("shake");
+	input.setCustomValidity("Incorrect password");
+	setTimeout(() => { input.classList.remove("shake"); input.setCustomValidity("");  }, 500);
+}
