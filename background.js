@@ -70,93 +70,33 @@ async function getIMK(passwd)
 	{
 		memzero(passwordEnscrypted);
 		passwordEnscrypted = null;
-		console.warn("background.getIMK", "ERRGI003", err);//FIXME
+		console.warn("background.getIMK", "ERRGI003");
 		throw new Error('ERRGI003', "Wrong password");
 	}
-/*
-		let prms = passwordEnscrypted == null ? enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, passwd, passwordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {}) : new Promise(resolve => resolve(passwordEnscrypted));
-		return prms.then(passwordEnscryptedLocal => {
-			if (passwordEnscryptedLocal.length === 32)
-			{
-				return aesGcmDecrypt(IMK, null, passwordEnscryptedLocal, passIv).then(decryptedIMK => {
-					if (savepwd)
-						passwordEnscrypted = passwordEnscryptedLocal;
-					else
-						memzero(passwordEnscryptedLocal);
-					return decryptedIMK;
-				}).catch(err => {
-					memzero(passwordEnscryptedLocal);
-					console.warn("background.getIMK", "ERRGI003");
-					throw(err);
-				});
-			}
-			else
-			{
-				console.warn("background.getIMK", "ERRGI002", "Length of enscryptedNewPassword should be 32");
-				memzero(passwordEnscryptedLocal);
-				return Promise.reject('ERRGI002');
-			}
-		}).catch(err => {
-			memzero(newPasswordAB);
-			console.warn("background.getIMK", "ERRGI001", "enscrypt newPassword failed");
-			throw new Error('ERRGI001', "enscrypt newPassword failed");
-		});
-	}
-	return Promise.reject('ERRGI000: Missing IMK');
-*/
 }
 async function setIMK(newIMK, newPasswordAB)
 {
-	if (newIMK.constructor === Uint8Array && newIMK.length === 32)
-	{
-		if (newPasswordAB.constructor === Uint8Array)
-		{
-			let newPasswordEnscryptSalt = localSodium.randombytes_buf(16);
-			return enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, newPasswordAB, newPasswordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {}).then(enscryptedNewPassword => {
-				memzero(newPasswordAB);
-				if (enscryptedNewPassword.length === 32)
-				{
-					let newPassIv = localSodium.randombytes_buf(12); //FIXME: or we could use crypto.getRandomValues(new Uint8Array(12)), which is better?
-					return aesGcmEncrypt(newIMK, null, enscryptedNewPassword, newPassIv).then(newEncrptdIMK => {
-						memzero(newIMK);
-						if (savepwd)
-							passwordEnscrypted = enscryptedNewPassword;
-						else
-							memzero(enscryptedNewPassword);
-						IMK = newEncrptdIMK;
-						passIv = newPassIv;
-						passwordEnscryptSalt = newPasswordEnscryptSalt;
-						chrome.storage.local.set({"encrIMK": Array.from(newEncrptdIMK), "passIv": Array.from(newPassIv), "passwordEnscryptSalt": Array.from(newPasswordEnscryptSalt)});
-						return { success: true };
-					}).catch(err => {
-						memzero(newIMK);
-						memzero(newPasswordAB);
-						console.warn("background.setIMK", "ERRSI004", "aesGcmEncrypt newIMK failed");
-						throw new Error('ERRSI004, aesGcmEncrypt error');
-					});
-				}
-				else
-				{
-					console.warn("background.setIMK", "ERRSI003", "Length of enscryptedNewPassword should be 32");
-					return Promise.reject('ERRSI003');
-				}
-			}).catch(err => {
-				memzero(newPasswordAB);
-				console.warn("background.setIMK", "ERRSI002", "enscrypt newPassword failed");
-				return Promise.reject('ERRSI002');
-			});
-		}
-		else
-		{
-			console.warn("background.setIMK", "ERRSI001", 'Argument 2 "newPasswordAB" should be a Uint8Array');
-			return Promise.reject('Argument 2 "newPasswordAB" should be a Uint8Array');
-		}
-	}
+	if (newIMK.constructor !== Uint8Array || newIMK.length !== 32)
+		throw new Error('ERRSI000', 'Argument 1 "newIMK" should be a Uint8Array of length 32');
+	if (newPasswordAB.constructor !== Uint8Array)
+		throw new Error("ERRSI001", 'Argument 2 "newPasswordAB" should be a Uint8Array');
+	let newPasswordEnscryptSalt = localSodium.randombytes_buf(16);
+	let enscryptedNewPassword = await enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, newPasswordAB, newPasswordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {});
+	memzero(newPasswordAB);
+	if (enscryptedNewPassword.length !== 32)
+		throw new Error("ERRSI003", "Length of enscryptedNewPassword should be 32");
+	let newPassIv = localSodium.randombytes_buf(12); //FIXME: or we could use crypto.getRandomValues(new Uint8Array(12)), which is better?
+	let newEncrptdIMK = await aesGcmEncrypt(newIMK, null, enscryptedNewPassword, newPassIv);
+	memzero(newIMK);
+	if (savepwd)
+		passwordEnscrypted = enscryptedNewPassword;
 	else
-	{
-		console.warn("background.setIMK", "ERRSI000", 'Argument 1 "newIMK" should be a Uint8Array of length 32');
-		return Promise.reject('Argument 1 "newIMK" should be a Uint8Array of length 32');
-	}
+		memzero(enscryptedNewPassword);
+	IMK = newEncrptdIMK;
+	passIv = newPassIv;
+	passwordEnscryptSalt = newPasswordEnscryptSalt;
+	chrome.storage.local.set({"encrIMK": Array.from(newEncrptdIMK), "passIv": Array.from(newPassIv), "passwordEnscryptSalt": Array.from(newPasswordEnscryptSalt)});
+	return { success: true };
 }
 function eraseIMK()
 {
