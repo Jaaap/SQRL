@@ -1,14 +1,14 @@
 {
 "use strict";
-let localSodium = null, textualIdentity = null, partialTextualIdentity = null, sodiumLoadQueue = [], getPostDataQueue = {};
-window.sodium = { onload: sod => {
-	localSodium = sod;
-	for (func of sodiumLoadQueue)
-	{
-		func();
-	}
-	sodiumLoadQueue = [];
-}};
+let localSodium = null, textualIdentity = null, partialTextualIdentity = null, getPostDataQueue = {};
+
+let sodiumPromise = new Promise((resolve, reject) => {
+	window.sodium = { onload: sod => {
+		localSodium = sod;
+		resolve();
+	}};
+})
+
 
 
 let savepwd = false;
@@ -117,113 +117,56 @@ function hasPassword()
 	return passwordEnscrypted != null;
 }
 
-
-function getPostDataAsync(href, windowLoc, passwdFromPopupAB, callback, tabId)
+async function getPostData(href, windowLoc, passwdFromPopupAB, tabId)
 {
-//console.log("backgroud.getPostDataAsync", href, windowLoc);
+	if (typeof href != "string" || !href.startsWith("sqrl://"))
+		throw new Error('ERRPD001', 'Argument 1 "href" should be a string starting with "sqrl://"');
+	if (typeof windowLoc != "string" || !/^https?:\/\//.test(windowLoc))
+		throw new Error('ERRPD002', 'Argument 2 "windowLoc" should be a string starting with "http://" or "https://"');
 	if (passwdFromPopupAB != null && passwdFromPopupAB.constructor !== Uint8Array)
-		throw new Error('Argument 3 "passwdFromPopup" should be a Uint8Array or null');
-	if (typeof href == "string" && href.startsWith("sqrl://"))
-	{
-		let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
-		if (hurl != null && isValidHostname(hurl.hostname))
-		{
-			let wurl = new URL(windowLoc);
-			if (wurl != null && isValidHostname(wurl.hostname))
-			{
-				if (hurl.origin === wurl.origin)
-				{
-					if (hasIMK())
-					{
-						if (hasPassword() || passwdFromPopupAB != null)
-						{
-							showBadgeError("", 0, tabId);
-							let work1 = (href, hurl, passwdFromPopupAB) => {
-								getIMK(passwdFromPopupAB).then(currIMK => {
-									let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, currIMK);
-/*
-crypto.subtle.importKey("raw", getIMK(), {"name": "HMAC", "hash": "SHA-256"}, false, ["sign"]).then(key => crypto.subtle.sign({"name": "HMAC", "hash": "SHA-256"}, key, str2ab(hurl.hostname))).then(HMAC256Hash2 => {
-console.log(new Uint8Array(HMAC256Hash2));
-});
-*/
+		throw new Error('ERRPD003', 'Argument 3 "passwdFromPopup" should be a Uint8Array or null');
 
-									let { publicKey: SitePublicKey, privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
-									memzero(HMAC256Hash);
+	let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
+	if (hurl == null)
+		throw new Error('ERRPD004', 'Argument 1 "href" should contain a valid URL');
+	if (!isValidHostname(hurl.hostname))
+		throw new Error('ERRPD005', 'Argument 1 "href" should contain a valid hostname in the URL');
+	let wurl = new URL(windowLoc);
+	if (wurl == null)
+		throw new Error('ERRPD006', 'Argument 2 "windowLoc" should contain a valid URL');
+	if (!isValidHostname(wurl.hostname))
+		throw new Error('ERRPD007', 'Argument 2 "windowLoc" should contain a valid hostname in the URL');
 
-									let client = base64url_encode([
-										"ver=1",
-										"cmd=ident",
-										"idk=" + localSodium.to_base64(SitePublicKey),
-										"opt=cps",
-										"" //keep this empty string for trailing \r\n
-									].join("\r\n"));
-									memzero(SitePublicKey);
+	if (hurl.origin !== wurl.origin)
+		throw new Error('ERRPD008', 'Cross-Origin Authentication attempt');
+	if (!hasIMK())
+		throw new Error('ERRPD009', 'Missing identity');
+	if (!hasPassword() && passwdFromPopupAB == null)
+		throw new Error('ERRPD010', 'Missing password');
 
-									let server = base64url_encode(href);
-									let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
-									memzero(SitePrivateKey);
+	await sodiumPromise;
+	let currIMK = await getIMK(passwdFromPopupAB);
+	let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, currIMK);
 
-									callback({"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')});
-								}).catch(err => {
-									console.warn("background.getPostDataAsync", "ERRPD008", "getIMK failed");
-									callback({"success": false, "errorCode": "ERRPD008"});
-								});
-							};
-							if (localSodium == null) //Fennec
-							{
-								sodiumLoadQueue.push(function(){ work1(href, hurl, passwdFromPopupAB); });
-							}
-							else
-							{
-								work1(href, hurl, passwdFromPopupAB);
-							}
-							return false;
-						}
-						else
-						{
-							showBadgeError("PASS", 6, tabId);
-							console.warn("background.getPostDataAsync", "ERRPD006", "Missing password");
-							callback({"success": false, "errorCode": "ERRPD006"});
-							return true;
-						}
-					}
-					else
-					{
-						showBadgeError("IDTY", 6, tabId);
-						console.warn("background.getPostDataAsync", "ERRPD005", "Missing identity");
-						callback({"success": false, "errorCode": "ERRPD005"});
-						return true;
-					}
-				}
-				else
-				{
-					showBadgeError("COA", 0, tabId);
-					console.warn("background.getPostDataAsync", "ERRPD004", "Cross-Origin Authentication attempt");
-					callback({"success": false, "errorCode": "ERRPD004"});
-					return true;
-				}
-			}
-			else
-			{
-				console.warn("background.getPostDataAsync", "ERRPD003", "Invalid window location");
-				callback({"success": false, "errorCode": "ERRPD003"});
-				return true;
-			}
-		}
-		else
-		{
-			console.warn("background.getPostDataAsync", "ERRPD002", "Invalid link location");
-			callback({"success": false, "errorCode": "ERRPD002"});
-			return true;
-		}
-	}
-	else
-	{
-		console.warn("background.getPostDataAsync", "ERRPD001", "Invalid sqrl link");
-		callback({"success": false, "errorCode": "ERRPD001"});
-		return true;
-	}
+	let { publicKey: SitePublicKey, privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
+	memzero(HMAC256Hash);
+
+	let client = base64url_encode([
+		"ver=1",
+		"cmd=ident",
+		"idk=" + localSodium.to_base64(SitePublicKey),
+		"opt=cps",
+		"" //keep this empty string for trailing \r\n
+	].join("\r\n"));
+	memzero(SitePublicKey);
+
+	let server = base64url_encode(href);
+	let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
+	memzero(SitePrivateKey);
+
+	return {"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')};
 }
+
 function createIdentity(sendResponse)
 {
 	let newIUK = localSodium.randombytes_buf(32);
@@ -352,23 +295,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	{
 		if (sender != null && "tab" in sender && sender.tab.id != null)
 		{
-			if (hasIMK())
-			{
-				getPostDataQueue["" + sender.tab.id] = {"href": request.href, "windowLoc": request.windowLoc};
-				showBadgeError("Auth", 6, sender.tab.id);
-				sendResponse({"success": true});
-			}
+			let href = request.href;
+			let windowLoc = request.windowLoc;
+			if (typeof href != "string" || !href.startsWith("sqrl://"))
+				sendResponse({"success": false, "errorCode": 'ERRRA001', "message": 'Argument "href" should be a string starting with "sqrl://"'});
+			else if (typeof windowLoc != "string" || !/^https?:\/\//.test(windowLoc))
+				sendResponse({"success": false, "errorCode": 'ERRRA002', "message": 'Argument "windowLoc" should be a string starting with "http://" or "https://"'});
 			else
 			{
-				showBadgeError("IDTY", 6, sender.tab.id);
-				console.warn("background.requestAction", "ERRRA001", "Missing identity");
-				sendResponse({"success": false, "errorCode": "ERRRA001"});
+				let hurl = new URL(href.replace(/^sqrl:/, 'https:'));
+				if (hurl == null)
+					sendResponse({"success": false, "errorCode": 'ERRRA004', "message": 'Argument "href" should contain a valid URL'});
+				else if (!isValidHostname(hurl.hostname))
+					sendResponse({"success": false, "errorCode": 'ERRRA005', "message": 'Argument "href" should contain a valid hostname in the URL'});
+				else
+				{
+					let wurl = new URL(windowLoc);
+					if (wurl == null)
+						sendResponse({"success": false, "errorCode": 'ERRRA006', "message": 'Argument "windowLoc" should contain a valid URL'});
+					else if (!isValidHostname(wurl.hostname))
+						sendResponse({"success": false, "errorCode": 'ERRRA007', "message": 'Argument "windowLoc" should contain a valid hostname in the URL'});
+					else if (hurl.origin !== wurl.origin)
+					{
+						showBadgeError("COA", 0, sender.tab.id);
+						sendResponse({"success": false, "errorCode": 'ERRRA008', "message": 'Cross-Origin Authentication attempt'});
+					}
+					else if (!hasIMK())
+					{
+						showBadgeError("IDTY", 6, sender.tab.id);
+						sendResponse({"success": false, "errorCode": "ERRRA001", "message": "Missing identity"});
+					}
+					else //success
+					{
+						getPostDataQueue["" + sender.tab.id] = {"href": request.href, "windowLoc": request.windowLoc};
+						showBadgeError("Auth", 6, sender.tab.id);
+						sendResponse({"success": true});
+					}
+				}
 			}
-/*
-			let hasCalledSendresponse = getPostDataAsync(request.href, request.windowLoc, sendResponse, sender.tab.id);
-			if (!hasCalledSendresponse)
-				return true; // make asynchronous
-*/
 		}
 		else
 		{
@@ -393,7 +357,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 						{
 							let passwdAB = request.password == null ? null : str2ab(request.password); //is memzero'd by getPostDataAsync
 							setSavepwd(request.savepwd);
-							getPostDataAsync(origRequest.href, origRequest.windowLoc, passwdAB, data => {
+							//getPostDataAsync(origRequest.href, origRequest.windowLoc, passwdAB, data => {
+							getPostData(origRequest.href, origRequest.windowLoc, passwdAB, tabId).then(data => {
 								if (data.success)
 								{
 									delete getPostDataQueue[tabId];
@@ -407,7 +372,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 								{
 									sendResponse(data); // to popup
 								}
-							}, tabId);
+							//}, tabId);
+							}).catch(err => {
+								if (err.message == "ERRPD010")
+									showBadgeError("PASS", 6, tabId);
+								else if (err.message == "ERRPD009")
+									showBadgeError("IDTY", 6, tabId);
+								else if (err.message == "ERRPD008")
+									showBadgeError("COA", 0, tabId);
+								sendResponse({"success": false, "errorCode": err.message}); // to popup
+							});
 						}
 						else
 						{

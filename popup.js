@@ -140,7 +140,7 @@ function onPasswdFormSubmit(evt)
 			}
 			else if ("errorCode" in resp)
 			{
-				if (resp.errorCode == "ERRPD008")
+				if (resp.errorCode == "ERRGI003")//"ERRPD008")
 					showPasswordError(elems.password);
 				else
 					showGenericError("onPasswdFormSubmit", "ERRPFS--2", "Unknown error code " + resp.errorCode);
