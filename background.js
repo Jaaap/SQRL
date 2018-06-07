@@ -166,6 +166,20 @@ async function getPostData(href, windowLoc, passwdFromPopupAB, tabId)
 
 	return {"success": true, "href": href, "postData": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&')};
 }
+function getSukVuk(IUK)//FIXME
+{
+	let randomLock = localSodium.randombytes_buf(32);
+	let SUK = localSodium.crypto_scalarmult_base(randomLock);
+	let ILK = localSodium.crypto_scalarmult_base(IUK);
+	let bytesToSign = localSodium.crypto_scalarmult(randomLock, ILK);
+	memzero(randomLock);
+	memzero(ILK);
+	let VUK64 = localSodium.crypto_sign_seed_keypair(bytesToSign).privateKey; //ignore publicKey
+	memzero(bytesToSign);
+	let VUK = VUK64.slice(0,32);
+	memzero(VUK64);
+	return {"suk": SUK, "vuk": VUK};
+}
 
 function createIdentity(sendResponse)
 {
