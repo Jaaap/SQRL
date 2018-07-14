@@ -3,8 +3,9 @@
 
 function onGenerateNewIdentityClick(evt)
 {
+	console.log("onGenerateNewIdentityClick");
 	chrome.runtime.sendMessage({'action': 'createIdentity' }, result => {
-		//console.log("onGenerateNewIdentityClick", result);
+		console.log("onGenerateNewIdentityClick", result);
 		if (result.success)
 		{
 			$('form#create textarea[name="identity"]').val(result.textualIdentity);
@@ -62,7 +63,7 @@ function onCreateFormSubmit(evt)
 				elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
 				if (result.success)
 				{
-					window.print();
+					//FIXME: window.print();
 					/*
 					elems.identity.value = "";
 					elems.rescuecode.value = "";
