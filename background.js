@@ -178,34 +178,25 @@ async function doServerRequest(href, server, windowLoc, passwdFromPopupAB, tabId
 	memzero(HMAC256Hash);
 
 	let clientData = [
+		"cmd=query",
 		"ver=1",
-		//isNewIdentity ? "cmd=ident" : "cmd=query",//"cmd=ident",
-		"cmd=ident",
 		"idk=" + localSodium.to_base64(SitePublicKey),
 		"opt=cps" //"opt=suk"
 		//FIXME: add "ins" when server requests it via sin=i
 	];
-	if (isNewIdentity)
-	{
-		let currILK = await getILK(passwdFromPopupAB);
-		let [SUK, VUK] = getSukVuk(currILK);
-		memzero(currILK);//getSukVuk also memzeros currILK
-		clientData.push("suk=" + localSodium.to_base64(SUK));
-		clientData.push("vuk=" + localSodium.to_base64(VUK));
-		memzero(SUK);
-		memzero(VUK);
-	}
 	clientData.push(""); //keep this empty string for trailing \r\n
 	let client = base64url_encode(clientData.join("\r\n"));
 	memzero(SitePublicKey);
 
 	let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
-	memzero(SitePrivateKey);
+	//memzero(SitePrivateKey);
 console.log("doServerRequest", "client", clientData);
 console.log("doServerRequest", "server", server);
 console.log("doServerRequest", "ids", ids);
 
-	let resp = await fetch(hurl.href, {
+
+// STEP 1: do q cmd=query
+	let resp1 = await fetch(hurl.href, {
 		"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'),
 		"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
 		"method": "POST", // *GET, PUT, DELETE, etc.
@@ -213,54 +204,110 @@ console.log("doServerRequest", "ids", ids);
 		"referer": "no-referrer", // *client, no-referrer
 		"redirect": "error", // *manual, follow, error
 		"credentials": "omit", // include, *omit, same-origin
+	}).catch(err => {
+		memzero(SitePrivateKey);
+		throw new Error("ERRFE000", "Response not defined");
 	});
-	if (resp.ok) //statusCode == 200
+	if (resp1 && resp1.ok) //statusCode == 200
 	{
-		let responseText = await resp.text();
-		let responseLines = base64url_decode(responseText).split("\r\n");
-console.log("doServerRequest", "server response", JSON.stringify(responseLines));
-		let responseMap = {};
-		for (let line of responseLines)
+		let responseText1 = await resp1.text();
+		let responseMap1 = getResponseAsMap(responseText1);
+		if ("tif" in responseMap1)
 		{
-			let eqPos = line.indexOf("=");
-			if (eqPos > -1)
-				responseMap[line.substring(0,eqPos)] = line.substr(eqPos + 1);
-		}
-		if ("tif" in responseMap)
-		{
-			//0x01	(Current) ID match: When set, this bit indicates that the web server has found an identity association for the user based upon the default (current) identity credentials supplied by the client: the IDentity Key (idk) and the IDentity Signature (ids).
-			if ("url" in responseMap)
+			if ("qry" in responseMap1)
 			{
-				return {"success": true, "url": responseMap.url};
-			}
-			else if (!isNewIdentity && !bitIsSet(Number.parseInt(responseMap.tif, 16), ID_MATCH))
-			{
-				console.warn("content.doServerRequest", "ERRAC002", "Server reports unknown identity / no id match found");
-				if ("qry" in responseMap)
+				clientData[0] = "cmd=ident";
+				clientData.pop(); //remove empty string previously pushed
+				if (!bitIsSet(Number.parseInt(responseMap1.tif, 16), ID_MATCH))
 				{
-					addRequestToPostDataQueue(hurl.origin.replace(/^https:/, 'sqrl:') + responseMap.qry, responseText, windowLoc, true, tabId, sendResponseToContent);
-					return {"success": true};
+					let currILK = await getILK(passwdFromPopupAB);
+					let [SUK, VUK] = getSukVuk(currILK);
+					memzero(currILK);//getSukVuk also memzeros currILK
+					clientData.push("suk=" + localSodium.to_base64(SUK));
+					clientData.push("vuk=" + localSodium.to_base64(VUK));
+					memzero(SUK);
+					memzero(VUK);
+				}
+				clientData.push(""); //keep this empty string for trailing \r\n
+				let client = base64url_encode(clientData.join("\r\n"));
+
+				ids = localSodium.crypto_sign_detached(client + responseText1, SitePrivateKey, 'base64');
+				memzero(SitePrivateKey);
+				let resp2 = await fetch(hurl.origin + responseMap1.qry, {
+					"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(responseText1), "ids=" + encodeURIComponent(ids)].join('&'),
+					"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+					"method": "POST", // *GET, PUT, DELETE, etc.
+					"headers": { "content-type": "application/x-www-form-urlencoded" },
+					"referer": "no-referrer", // *client, no-referrer
+					"redirect": "error", // *manual, follow, error
+					"credentials": "omit", // include, *omit, same-origin
+				}).catch(err => {
+					throw new Error("ERRFE001", "Response2 not defined");
+				});
+				if (resp2 && resp2.ok) //statusCode == 200
+				{
+					let responseText2 = await resp2.text();
+					let responseMap2 = getResponseAsMap(responseText2);
+					if ("tif" in responseMap2)
+					{
+						//0x01	(Current) ID match: When set, this bit indicates that the web server has found an identity association for the user based upon the default (current) identity credentials supplied by the client: the IDentity Key (idk) and the IDentity Signature (ids).
+						if ("url" in responseMap2)
+						{
+							return {"success": true, "url": responseMap2.url};
+						}
+						else if (!bitIsSet(Number.parseInt(responseMap2.tif, 16), ID_MATCH))
+						{
+							throw new Error("ERRFE003", "No IDMATCH in responseMap2");
+						}
+						else
+						{
+							throw new Error("ERRFE002", "No url in responseMap2");
+						}
+					}
+					else
+					{
+						throw new Error("ERRFE004", "No tif in responseMap2");
+					}
 				}
 				else
 				{
-					throw new Error("ERRFE003", "No qry in responseMap");
+					throw new Error("ERRFE005", "Response2 statuscode other than 200");
 				}
 			}
 			else
 			{
-				throw new Error("ERRFE001", "No url in responseMap");
+				memzero(SitePrivateKey);
+				throw new Error("ERRFE006", "No qry in responseMap1");
 			}
 		}
 		else
 		{
-			throw new Error("ERRFE004", "No tif in responseMap");
+			memzero(SitePrivateKey);
+			throw new Error("ERRFE007", "No tif in responseMap1");
 		}
 	}
 	else
 	{
-		throw new Error("ERRFE000", "Response statuscode other than 200");
+		memzero(SitePrivateKey);
+		throw new Error("ERRFE008", "Response1 statuscode other than 200");
 	}
 }
+
+function getResponseAsMap(responseText)
+{
+	let responseLines = base64url_decode(responseText).split("\r\n");
+console.log("getResponseAsMap", "server response", JSON.stringify(responseLines));
+	let responseMap = {};
+	for (let line of responseLines)
+	{
+		let eqPos = line.indexOf("=");
+		if (eqPos > -1)
+			responseMap[line.substring(0,eqPos)] = line.substr(eqPos + 1);
+	}
+	return responseMap;
+}
+
+
 
 function getSukVuk(ILK)//ILK IS MEMZERO'D by this function
 {
@@ -403,7 +450,7 @@ function base64url_decode(data)
 {
 	if (data.length % 4 > 0)
 	{
-		//padd width equal signs
+		//pad with equal signs
 		data = data + new Array(5 - (data.length % 4)).join("=");
 	}
 	let dst = "";
