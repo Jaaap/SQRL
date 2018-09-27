@@ -18,22 +18,53 @@ function onAnchorClick(evt)
 				else
 					console.log("content", "onAnchorClick", "ERRAC001");
 			});
+			//var anchor = $('#sqrl')
 			//draw arrow from anchor to top right of screen
 			var rect = anchor.getBoundingClientRect();
 			//coordinates relative to top left corner of documentElement
 			var x1 = rect.right;
 			var y1 = rect.top;
-			var x2 = document.documentElement.clientWidth + document.documentElement.scrollLeft;
-			var y2 = document.documentElement.scrollTop;
+			var x2 = document.documentElement.clientWidth - 24;
+			var y2 = 0;
 			var dx = x2 - x1;
 			var dy = y2 - y1;
-			var l = Math.sqrt(Math.pow(dx, 2), Math.pow(dy, 2));
+			var l = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 			var a = Math.atan(dy / dx);
 console.log(x1, y1, x2, y2, l);
-			var hr = document.createElement("hr");
-			hr.style.cssText = `position: absolute; border: 0 none; z-index: 99999; height: 2px; background-color: #007CC3; top: ${y1}px; left: ${x1}px; width: ${l}px; transform: rotate(${a}rad); transform-origin: bottom left;`;
-			document.body.appendChild(hr);
-			setTimeout(() => { document.body.removeChild(hr); }, 1000);
+			var arrow = document.createElement("div");
+			var shaft = document.createElement("hr");
+			var tip = document.createElement("span");
+			arrow.style.cssText = `
+position: absolute;
+z-index: 99999;
+left: ${x1 + document.documentElement.scrollLeft}px;
+top: ${y1 + document.documentElement.scrollTop}px;
+width: ${l}px;
+transform: rotate(${a}rad);
+transform-origin: bottom left;
+`;
+			shaft.style.cssText = `
+height: 2px;
+width: ${l - 15}px;
+border: 0 none;
+background-color: #007CC3;
+box-shadow: 0 0 4px #FFF;
+`;
+			tip.style.cssText = `
+position: absolute;
+right: 0;
+top: -7px;
+height: 0;
+width: 0;
+display: inline-block;
+border-top: 8px solid transparent;
+border-bottom: 8px solid transparent;
+border-left: 16px solid #007CC3;
+`;
+			arrow.appendChild(shaft);
+			arrow.appendChild(tip);
+			document.body.appendChild(arrow);
+			setTimeout(() => { document.body.removeChild(arrow); }, 1000);
 		}
 	}
 }
