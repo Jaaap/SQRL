@@ -24,54 +24,67 @@ function onAnchorClick(evt)
 			//coordinates relative to top left corner of documentElement
 			var x1 = rect.right;
 			var y1 = rect.top;
-			var x2 = document.documentElement.clientWidth - 24;
-			var y2 = 0;
+			var x2 = document.documentElement.clientWidth - 32;
+			var y2 = 50; //0;
 			var dx = x2 - x1;
 			var dy = y2 - y1;
 			var l = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 			var a = Math.atan(dy / dx);
-console.log(x1, y1, x2, y2, l);
+console.log(x1, y1, x2, y2, dx, dy, l);
 			var arrow = document.createElement("div");
-			var shaft = document.createElement("hr");
+			var shaft1 = document.createElement("hr");
+			var shaft2 = document.createElement("hr");
 			var tip = document.createElement("span");
 			arrow.style.cssText = `
 position: absolute;
 z-index: 99999;
 left: ${x1 + document.documentElement.scrollLeft}px;
 top: ${y1 + document.documentElement.scrollTop}px;
+width: ${dx}px;
+`;
+			shaft1.style.cssText = `
+height: 2px;
 width: ${l}px;
 transform: rotate(${a}rad);
 transform-origin: bottom left;
+border: 0 none;
+background-color: #007CC3;
+box-shadow: 0 0 4px #FFF;
 `;
-			shaft.style.cssText = `
-height: 2px;
-width: ${l - 15}px;
+			shaft2.style.cssText = `
+position: absolute;
+right: 0;
+top: ${dy - 19}px;
+height: 20px;
+width: 2px;
 border: 0 none;
 background-color: #007CC3;
 box-shadow: 0 0 4px #FFF;
 `;
 			tip.style.cssText = `
 position: absolute;
-right: 0;
-top: -7px;
+right: -6.5px;
+top: ${dy - 33}px;
 height: 0;
 width: 0;
 display: inline-block;
-border-top: 8px solid transparent;
-border-bottom: 8px solid transparent;
-border-left: 16px solid #007CC3;
+border-left: 8px solid transparent;
+border-right: 8px solid transparent;
+border-bottom: 16px solid #007CC3;
 `;
-			arrow.appendChild(shaft);
+			arrow.appendChild(shaft1);
+			arrow.appendChild(shaft2);
 			arrow.appendChild(tip);
 			document.body.appendChild(arrow);
-			setTimeout(() => { document.body.removeChild(arrow); }, 1000);
+			setTimeout(() => { document.body.removeChild(arrow); }, 2000);
 		}
 	}
 }
 
 //assume DOMLoaded
-[].forEach.call(document.querySelectorAll('a[href^="sqrl://"]'), anchor => {
+anchors = [].map.call(document.querySelectorAll('a[href^="sqrl://"]'), anchor => {
 	anchor.addEventListener("click", onAnchorClick, false);
+	return anchor;
 });
 
 }

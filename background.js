@@ -171,7 +171,17 @@ async function doServerRequest(href, server, windowLoc, passwdFromPopupAB, tabId
 	delete getPostDataQueue[tabId];
 	await sodiumPromise;
 	let currIMK = await getIMK(passwdFromPopupAB);
-	let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hurl.hostname, currIMK);
+	let hostnameExtended = hurl.hostname;
+	if (hurl.search.length > 1)//starts with '?'
+	{
+		let searchParams = new URLSearchParams(hurl.search.substr(1));
+		if (searchParams.has("x") && /^[1-9]\d*$/.test(searchParams.get("x")))
+		{
+			let x = parseInt(searchParams.get("x"), 10);
+			hostnameExtended = hurl.hostname + hurl.pathname.substr(0,x);
+		}
+	}
+	let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hostnameExtended, currIMK);
 	memzero(currIMK);
 
 	let { publicKey: SitePublicKey, privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
