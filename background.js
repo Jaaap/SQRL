@@ -696,6 +696,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			enscryptedRescueCodeLocal = new Uint8Array(request.enscryptedRescueCode);
 			memzero(request.enscryptedRescueCode);
 		}
+		if (request.print)
+		{
+			browser.tabs.create({ url: "/printIdentity.html" }).then(tab => {
+				browser.tabs.sendMessage(tab.id, {"action": "printIdentity", "textualIdentity": request.textualIdentity, "rescueCode": request.rescueCode});
+			});
+		}
 		importIdentity(request.textualIdentity, request.rescueCode, enscryptedRescueCodeLocal, request.password, sendResponse);
 		partialTextualIdentity = null;
 		return true;

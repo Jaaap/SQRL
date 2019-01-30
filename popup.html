@@ -10,7 +10,6 @@
 <script src="popup.js" defer></script>
 <style>
 :root { --sqrl-blue: #007CC3; --grey: #7FBDE1; }
-@media screen {
 * { box-sizing: border-box; }
 html,body { display: flex; margin: 0; flex-direction: column; }
 body,label,input { font-size: 17px; }
@@ -77,21 +76,6 @@ div>input[type="radio"]:checked~div { display: block; }
 
 button.success::after,label.success::after { content: " ✅"; }
 button.failure::after,label.failure::after { content: " ❌"; }
-div.print { display: none; }
-}
-@media print {
-	@page { size: auto; margin: 0; }
-	body { font: 36px monospace; text-align: center; padding: 1em 2em; }
-	h1 { margin: 0; font-size: 108px; }
-	h1>img { width: 64px; margin-right: 8px; }
-	hr { border: 0 none; display: inline-block; width: 90%; border-top: 5px dashed #000; vertical-align: top; }
-	div>form,label,form#passwd,input[name="tab"],label+b,br { display: none; }
-	div.print,div>form.print { display: block; }
-	label.print { display: inline-block; width: 100%; }
-	label>span { font-size: 48px; display: block; margin: 0.5em 0; }
-	textarea,input[type="text"] { width: 100%; font-size: 36px; line-height: 48px; }
-	textarea { height: 15em; margin-bottom: 1em; }
-}
 .shake { animation: 0.4s linear 0s normal none 1 running shake; }
 @keyframes shake {
 	8%, 41% { transform: translate(-10px, 0); }
@@ -113,12 +97,11 @@ div.print { display: none; }
 	<div>
 		<input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label>
 		<div>
-			<form id="create" class="print">
+			<form id="create">
 				<label><span></span><button type="button" id="generateNewIdentity">Generate new Identity</button></label><br/>
 				<label><span></span><progress value="0"></progress></label><br/>
-				<label class="print"><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
-				<div class="print">✂ <hr/></div>
-				<label class="print"><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
+				<label><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
+				<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
 				<input type="hidden" name="enscryptedrescuecode"/>
 				<label><span></span>Write this code down on paper</label><br/>
 				<br/>

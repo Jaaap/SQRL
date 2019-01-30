@@ -58,7 +58,7 @@ function onCreateFormSubmit(evt)
 		{
 			elems.verifypassword.setCustomValidity("");
 			let enscryptedRescueCode = JSON.parse(elems.enscryptedrescuecode.value);
-			chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "enscryptedRescueCode": enscryptedRescueCode, "password": elems.password.value }, result => {
+			chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value, "enscryptedRescueCode": enscryptedRescueCode, "password": elems.password.value, "print": true}, result => {
 				memzero(enscryptedRescueCode);
 				elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
 				if (result.success)
@@ -87,7 +87,7 @@ function onImportFormSubmit(evt)
 	if (elems.verifypassword.value === elems.password.value)
 	{
 		elems.verifypassword.setCustomValidity("");
-		chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value, "password": elems.password.value}, result => {
+		chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value, "password": elems.password.value, "print": false}, result => {
 			//console.log("onImportFormSubmit", result);
 			elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
 			if (result.success)
