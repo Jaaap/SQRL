@@ -81,10 +81,45 @@ border-bottom: 16px solid #007CC3;
 	}
 }
 
+function addEvent(anchor)
+{
+	console.log("FOUND SQRL LINK", anchor);
+	anchor.addEventListener("click", onAnchorClick, false);//anchor may already have this eventListener but it's ok to add it again, see https://www.w3.org/TR/2000/REC-DOM-Level-2-Events-20001113/events.html#Events-EventTarget-addEventListener
+}
+function addEvents(root)
+{
+	console.log("adding events to", root);
+	if (root.tagName == "A" && /^sqrl:\/\//.test(root.getAttribute("href")))
+	{
+		addEvent(root);
+	}
+	else
+	{
+		if (root.nodeType == Node.ELEMENT_NODE || root.nodeType == Node.DOCUMENT_NODE)
+		{
+			[].forEach.call(root.querySelectorAll('a[href^="sqrl://"]'), addEvent);
+		}
+	}
+}
+
 //assume DOMLoaded
-anchors = [].map.call(document.querySelectorAll('a[href^="sqrl://"]'), anchor => {
-	anchor.addEventListener("click", onAnchorClick, false);
-	return anchor;
+addEvents(document);
+
+//track DOM changes
+let observer = new MutationObserver(mutations => {
+	for (var mutation of mutations)
+	{
+		//console.log(mutation);
+		if (mutation.type == 'childList')
+		{
+			[].forEach.call(mutation.addedNodes, addEvents);
+		}
+		else if (mutation.type == 'attributes')
+		{
+			addEvents(mutation.target);
+		}
+	}
 });
+observer.observe(document.body, { attributes:true, attributeFilter: ["href"], childList: true, subtree: true });
 
 }

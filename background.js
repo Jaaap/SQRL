@@ -206,6 +206,7 @@ console.log("doServerRequest", "ids", ids);
 
 
 // STEP 1: do q cmd=query
+console.log("fetch", hurl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
 	let resp1 = await fetch(hurl.href, {
 		"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'),
 		"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
