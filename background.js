@@ -699,8 +699,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		}
 		if (request.print)
 		{
-			browser.tabs.create({ url: "/printIdentity.html" }).then(tab => {
-				browser.tabs.sendMessage(tab.id, {"action": "printIdentity", "textualIdentity": request.textualIdentity, "rescueCode": request.rescueCode});
+			chrome.tabs.create({ url: "/printIdentity.html" }, tab => {
+//console.log("sending message to printIdentity", tab.id, new Date().getTime());
+				chrome.tabs.sendMessage(tab.id, {"action": "printIdentity", "textualIdentity": request.textualIdentity, "rescueCode": request.rescueCode});
 			});
 		}
 		importIdentity(request.textualIdentity, request.rescueCode, enscryptedRescueCodeLocal, request.password, sendResponse);
