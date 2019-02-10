@@ -71,6 +71,7 @@ display: inline-block;
 border-left: 8px solid transparent;
 border-right: 8px solid transparent;
 border-bottom: 16px solid #007CC3;
+filter: drop-shadow(0 0 2px #FFF);
 `;
 			arrow.appendChild(shaft1);
 			arrow.appendChild(shaft2);

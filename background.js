@@ -701,7 +701,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		{
 			chrome.tabs.create({ url: "/printIdentity.html" }, tab => {
 //console.log("sending message to printIdentity", tab.id, new Date().getTime());
-				chrome.tabs.sendMessage(tab.id, {"action": "printIdentity", "textualIdentity": request.textualIdentity, "rescueCode": request.rescueCode});
+				setTimeout(() =>
+					chrome.tabs.sendMessage(tab.id, {"action": "printIdentity", "textualIdentity": request.textualIdentity, "rescueCode": request.rescueCode})
+				, 100);//For Chrome, doesn't immediately start listening for some reason
 			});
 		}
 		importIdentity(request.textualIdentity, request.rescueCode, enscryptedRescueCodeLocal, request.password, sendResponse);
