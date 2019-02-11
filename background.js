@@ -67,7 +67,7 @@ async function getIMKorILK(passwd, isIMK)
 	if (!isIMK && !hasILK())
 		throw new Error('ERRGI001', "Missing ILK");
 	if (passwd == null && passwordEnscrypted == null)
-		throw new Error('ERRGI003', "Missing password");
+		throw new Error('ERRGI007', "Missing password");
 	if (passwordEnscrypted == null)
 	{
 		if (passwordEnscryptSalt == null)
@@ -168,9 +168,9 @@ async function doServerRequest(href, server, windowLoc, passwdFromPopupAB, tabId
 	if (!hasPassword() && passwdFromPopupAB == null)
 		throw new Error('ERRPD010', 'Missing password');
 
-	delete getPostDataQueue[tabId];
 	await sodiumPromise;
 	let currIMK = await getIMK(passwdFromPopupAB);
+	delete getPostDataQueue[tabId];
 	let hostnameExtended = hurl.hostname;
 	if (hurl.search.length > 1)//starts with '?'
 	{
@@ -593,12 +593,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 								}
 							}).catch(err => {
 								console.warn("background.requestAction", "ERRRA004", err.message, err.fileName);//FIXME
-								if (err.message == "ERRPD010")
-									showBadgeError("PASS", 6, tabId);
-								else if (err.message == "ERRPD009")
-									showBadgeError("IDTY", 6, tabId);
-								else if (err.message == "ERRPD008")
-									showBadgeError("COA", 0, tabId);
+								if (err.message == "ERRPD010")		{ showBadgeError("PASS", 6, tabId); }
+								else if (err.message == "ERRPD009")	{ showBadgeError("IDTY", 6, tabId); }
+								else if (err.message == "ERRPD008")	{ showBadgeError("COA", 0, tabId); }
+								else if (err.message == "ERRGI003")	{ sendResponse({"success": false, "errorCode": err.message}); } //to popup, wrong password
 								else
 								{
 									origRequest.sendResponseToContent({"success": false, "errorCode": err.message}); //to content
@@ -737,6 +735,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 function showBadgeError(txt, animateCount, tabId)//animateCount must be even
 {
 	chrome.browserAction.setBadgeBackgroundColor({color: "red"});
+	chrome.browserAction.setBadgeTextColor({color: "white"});
 	chrome.browserAction.setBadgeText({"text": animateCount % 2 ? "" : txt, "tabId": tabId});
 	if (animateCount > 0)
 	{
