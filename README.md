@@ -14,6 +14,7 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 - Check popup with different zoom settings
 - Better error reporting when entering textual identity with extra newline
 - Better error message for Rescue Code (iso "Please match the format requested")
+- Show when remember password is checked and prefill the password box with some dots in that case, maybe add submit button
 
 ## Feature requests
 - Import .sqrl identity files
