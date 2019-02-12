@@ -13,6 +13,7 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 ## TODO's
 - Check popup with different zoom settings
 - Better error reporting when entering textual identity with extra newline
+- Better error message for Rescue Code (iso "Please match the format requested")
 
 ## Feature requests
 - Import .sqrl identity files
