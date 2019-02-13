@@ -12,12 +12,8 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 
 ## TODO's
 - Check popup with different zoom settings
-- Better error reporting when entering textual identity with extra newline
-- Better error message for Rescue Code (iso "Please match the format requested")
-- Show when remember password is checked and prefill the password box with some dots in that case, maybe add submit button
 
 ## Feature requests
-- Import .sqrl identity files
 - Scan QR codes via webcam
 - Keep a list of sites where SQRL was used
 	- Click a link to open the site and log in to it
