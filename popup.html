@@ -55,9 +55,10 @@ label { vertical-align: top; }
 label.pwd { display: inline-block; margin: 0 0 12px 0; }
 label>span { display: inline-block; width: 152px; vertical-align: top; }
 label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
-label>input[type="text"],label>input[type="number"],label>input[type="password"],label>textarea,label>progress,label>button { width: 270px; vertical-align: super; }
+label>input[type="text"],label>input[type="number"],label>input[type="password"],label>input[type="file"],label>textarea,label>progress,label>button { width: 270px; vertical-align: super; }
+label>input[type="file"] { width: 280px; }
 label>textarea { border: 0 none; height: 150px; line-height: 22px; }
-#import label>textarea,#export label>textarea { height: 300px; }
+#import label>textarea,#export label>textarea { height: 280px; }
 label>dl { display: inline-block; width: 300px; margin: 0; }
 label.pwd>input { width: 380px; }
 label+b { padding: 0 0 0 8px; cursor: pointer; vertical-align: top; display: inline-block; width: 28px; line-height: 22px; }
@@ -109,7 +110,8 @@ dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: 
 				<input type="hidden" name="enscryptedrescuecode"/>
 				<label><span></span>Write this code down on paper</label><br/>
 				<br/>
-				<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}"/></label><br/>
+				<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}" data-errormessage="Please repeat the Rescue Code from the input above.
+The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/>
 				<label><span>Choose Password</span><input type="password" name="password"/></label><br/>
 				<label><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
 				<label><span></span><button>🖨 Print &amp; Use this Identity</button></label><br/>
@@ -120,8 +122,9 @@ dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: 
 		<input type="radio" name="tab" value="2" id="tab2"/><label for="tab2">Import Identity</label>
 		<div>
 			<form id="import">
-				<label><span>Identity*</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83"></textarea></label><b></b><br/>
-				<label><span>Rescue Code*</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){5}\d{4}"/></label><br/>
+				<label><span>Choose .sqrl file</span><input type="file" name="identityfile" accept=".sqrl"/></label>
+				<label><span>or<br/>Textual Identity*</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83" required></textarea></label><b></b><br/>
+				<label><span>Rescue Code*</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){5}\d{4}" data-errormessage="The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/>
 				<label><span>Choose Password</span><input type="password" name="password"/></label><br/>
 				<label><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
 				<label><span></span><progress value="0"></progress></label><br/>

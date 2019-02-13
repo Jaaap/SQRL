@@ -76,7 +76,7 @@ jqo.prototype.height =	function height(val)	{ if (typeof val != "undefined") { t
 jqo.prototype.offset =	function()	{ if (this.length>0) { var bcr = this[0].getBoundingClientRect(); return {left:bcr.left+window.pageXOffset - document.body.clientLeft, top:bcr.top+window.pageYOffset - document.body.clientTop}; } };
 jqo.prototype.debug =	function(fnc, args, str) { var argz = []; for (var i = 0, len = args.length; i < len; i++) { argz.push(JSON.stringify(args[i])||'function'); } console.warn("$('" + this._sel + "')." + fnc + "(" + argz.join(', ') + ")", str); };
 jqo.prototype.extend =	function(methods) { for (var name in methods) { jqo.prototype[name] = methods[name]; } };
-jqo.prototype.enable =	function(on) { this.each(function(i,elem){ elem.disabled = (typeof on == "undefined") ? false : !on; }); };
+jqo.prototype.enable =	function(on) { this.each(function(i,elem){ elem.disabled = (typeof on == "undefined") ? false : !on; }); return this; };
 
 function jqi()
 {

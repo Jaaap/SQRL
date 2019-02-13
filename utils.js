@@ -15,17 +15,27 @@ function memzero(e) //WARNING: nameclash with the same method in background.js
 	else
 		throw new Error("Only Uint8Array, Array and BN instances can be wiped");
 }
-function str2ab(str) //WARNING: nameclash with the same method in background.js //string to arraybuffer (Uint8Array)
+function str2ab(str)
 {
 	return new TextEncoder("utf-8").encode(str);
+}
+function ab2str(ab)
+{
+	return new TextDecoder("utf-8").decode(ab);
 }
 
 async function validateTextualIdentity(ti)
 {
 	let lines = ti.split(/\r?\n/);
+	if (/\s+$/.test(ti))
+		return { "success": false, "lineNr": lines.length - 1, "message": `Trailing whitespace on last line.\nRemove any trailing newlines or spaces or tabs` };
 	let base56invalidsCharsRe = new RegExp(`([^${base56chars}])`);
 	for (let [lIndex, line] of lines.entries())
 	{
+		if (/^\s+/.test(line))
+			return { "success": false, "lineNr": lIndex, "message": `Leading whitespace on line ${lIndex + 1}.\nRemove any leading newlines or spaces or tabs` };
+		if (/\s+$/.test(line))
+			return { "success": false, "lineNr": lIndex, "message": `Trailing whitespace on line ${lIndex + 1}.\nRemove any trailing newlines or spaces or tabs` };
 		let blocks = line.split(/ /);
 		if (blocks.length < 5 && lIndex < lines.length - 1)
 			return { "success": false, "lineNr": lIndex, "message": `Not enough blocks on line ${lIndex + 1}.\nA line must contain 5 blocks (of 4 characters), separated by spaces, unless it is the last line.` };
@@ -73,4 +83,61 @@ function showPasswordError(input)
 	input.classList.add("shake");
 	input.setCustomValidity("Incorrect password");
 	setTimeout(() => { input.classList.remove("shake"); input.setCustomValidity("");  }, 500);
+}
+
+
+//uses BigNum, https://github.com/indutny/bn.js/
+function base56encode(i)
+{
+	let bi;
+	if (i.constructor === BN)
+		bi = i;
+	else if (typeof i == "string" || i.constructor === Uint8Array)
+		bi = new BN(i);
+	else if (typeof i == "number")
+	{
+		if (i > Number.MAX_SAFE_INTEGER)
+			throw new Error('base56encode: ERROR. Argument 1 "i" larger than ' + Number.MAX_SAFE_INTEGER + ' should be represented as String or BigInt');
+		bi = new BN(i);
+	}
+	else
+		throw new Error('base56encode: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number');
+	if (bi.isNeg())
+		throw new Error('base56encode: ERROR. Argument 1 "i" should be positive');
+	let result = [];
+	do
+	{
+		let r = bi.modn(56);
+		let q = bi.divn(56);
+		result.push(base56chars[r]);
+		bi = q;
+	}
+	while (bi.gtn(0));
+	return result.join('');
+}
+function base56decode(s)
+{
+	if (typeof s != "string")
+		throw new Error('base56decode: ERROR. Argument 1 "s" should be a String');
+	if (/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]/.test(s))
+		throw new Error('base56decode: ERROR. Argument 1 "s" can only contain valid base56 characters [23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]');
+	if (s == null || s == "")
+		return 0;
+	let result = new BN(0);
+	for (let i = s.length-1; i >= 0; i--)
+	{
+		result.imuln(56);
+		result.iaddn(base56chars.indexOf(s.charAt(i)));
+	}
+	return result;
+}
+async function addVerificationAndWhitespaceToTextualIdentity(ti)
+{
+	let result = [];
+	for (let i = 0; 19 * i < ti.length; i++)
+	{
+		let verificationChar = await getVerificationChar(ti.substr(19 * i, 19) + " ", i);
+		result[i] = (ti.substr(19 * i, 19) + verificationChar).replace(/(.{4})\B/g, "$1 ");
+	}
+	return result.join("\n");
 }

@@ -22,7 +22,7 @@ function onVerifyrescuecodeBlur(evt)
 {
 	$('form#create input[name="rescuecode"]').attr("type", "text");
 }
-function onVerifyrescuecodeKeyUp(evt)
+function onInputInput(evt)
 {
 	this.setCustomValidity("");
 }
@@ -43,6 +43,40 @@ function onTextualIdentityKeyUp(evt)
 		console.warn("popup.onTextualIdentityKeyUp", "ERRVA000", err);
 	});
 }
+function onIdentityfileChange(evt)
+{
+	let input = evt.target;
+	let errorText = "";
+	if (input.files.length)
+	{
+		if (input.files.length == 1)
+		{
+			let reader = new FileReader();
+			reader.onload = function(evt) {
+				let data = evt.target.result;//ArrayBuffer
+				let array = new Uint8Array(data);
+				console.log(array);
+				if ([206, 260, 292, 324, 356].indexOf(array.length) > -1)
+				{
+					if (ab2str(array.slice(0,8)) == "sqrldata")
+					{
+						//Ignore the first 133 bytes and convert the rest to base65
+						addVerificationAndWhitespaceToTextualIdentity(base56encode(array.slice(133))).then(ti => document.querySelector('form#import textarea[name="identity"]').value = ti);
+					}
+					else
+						errorText = "Invalid .sqrl file selected. File should start with string 'sqrldata'";
+				}
+				else
+					errorText = "Invalid .sqrl file selected. Size of the file should be 206, 260, 292, 324 or 356 bytes.";
+			};
+			reader.readAsArrayBuffer(input.files[0]);
+		}
+		else
+			errorText = "More than one file selected.\nSelect only 1 file";
+	}
+	input.setCustomValidity(errorText);
+	input.reportValidity();
+}
 
 
 
@@ -61,9 +95,10 @@ function onCreateFormSubmit(evt)
 			chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value, "enscryptedRescueCode": enscryptedRescueCode, "password": elems.password.value, "print": true}, result => {
 				memzero(enscryptedRescueCode);
 				elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
-				if (result.success)
+				if (result == null)
+					showGenericError("onCreateFormSubmit", "ERRCFS--1", "Problem communicating with background");
+				else if (result.success)
 				{
-					//FIXME: window.print();
 					/*
 					elems.identity.value = "";
 					elems.rescuecode.value = "";
@@ -72,6 +107,10 @@ function onCreateFormSubmit(evt)
 					setPopupState();
 					*/
 				}
+				else if ("errorCode" in resp)
+					showGenericError("onCreateFormSubmit", "ERRCFS--1", "Unknown error code " + resp.errorCode);
+				else
+					showGenericError("onCreateFormSubmit", "ERRCFS--2", "Missing error code");
 			});
 		}
 		else
@@ -96,6 +135,7 @@ function onImportFormSubmit(evt)
 				elems.rescuecode.value = "";
 				$('form#import label+b').text("").attr("title", "");
 				setPopupState();
+				$('#tab2')[0].checked = false;
 			}
 		});
 	}
@@ -154,7 +194,7 @@ function onPasswdFormSubmit(evt)
 function setPopupState()
 {
 	chrome.runtime.sendMessage({'action': 'hasIdentity' }, result => {
-		$('form#passwd input').enable(result.hasIdentity);
+		$('form#passwd input').enable(result.hasIdentity).val(result.hasPassword ? "........" : "");
 		$('form#passwd input[name="savepwd"]').val(result.isSavepwd);
 		$('#tab1,#tab2').enable(!result.hasIdentity);
 		$('#tab3,#tab4,#tab5,#tab6').enable(result.hasIdentity);
@@ -166,6 +206,16 @@ function setPopupState()
 			$('#tab2')[0].checked = true;
 		}
 	});
+}
+
+function onInputInputValidate(evt)
+{
+	evt.target.setCustomValidity('');
+	evt.target.checkValidity();
+}
+function onInputInvalidValidate(evt)
+{
+	evt.target.setCustomValidity(evt.target.getAttribute("data-errormessage"));
 }
 function init()
 {
@@ -179,7 +229,7 @@ function init()
 				chrome.runtime.sendMessage({'action': 'hasPassword' }, result2 => {
 					if (result2 && result2.hasPassword) //password is known to background
 					{
-						chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": null}, resp => {
+						chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": null, "savepwd": true}, resp => {
 							//console.log("popup.init", "sendPostDataToActiveTab", resp);
 							if (resp != null && resp.success && resp.hasOpenRequest)
 							{
@@ -205,9 +255,12 @@ function init()
 	$('form#changepassword').submit(onChangepasswordFormSubmit);
 	$('form#deletepassword').submit(onDeletepasswordFormSubmit);
 	$('form#eraseidentity').submit(onEraseidentityFormSubmit);
-	$('form#create input[name="verifyrescuecode"]').focus(onVerifyrescuecodeFocus).blur(onVerifyrescuecodeBlur).keyup(onVerifyrescuecodeKeyUp);
+	$('form#create input[name="verifyrescuecode"]').focus(onVerifyrescuecodeFocus).blur(onVerifyrescuecodeBlur).bind("input", onInputInput);
+	$('form input[name="verifypassword"]').bind("input", onInputInput);
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
+	$('form#import input[name="identityfile"]').change(onIdentityfileChange);
 	$('form#passwd').submit(onPasswdFormSubmit);
+	$('input[data-errormessage]').bind("input", onInputInputValidate).bind("invalid", onInputInvalidValidate);
 }
 
 if ("chrome" in window)

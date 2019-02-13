@@ -39,6 +39,7 @@ chrome.storage.local.get(["encrIMK", "encrILK", "passIv", "passwordEnscryptSalt"
 });
 function setSavepwd(newSavepwd)
 {
+console.log("setSavepwd", newSavepwd);
 	savepwd = newSavepwd;
 	chrome.storage.local.set({"savepwd": newSavepwd}, () => {
 		console.log("chrome.storage.local.set", chrome.runtime.lastError);
@@ -81,6 +82,7 @@ async function getIMKorILK(passwd, isIMK)
 	if (passwordEnscrypted.length !== 32)
 	{
 		memzero(passwordEnscrypted);
+		passwordEnscrypted = null;
 		console.warn("background.getIMKorILK", "ERRGI002", "Length of passwordEnscrypted should be 32");
 		throw new Error('ERRGI002', "Length of passwordEnscrypted should be 32");
 	}
@@ -532,14 +534,11 @@ function addRequestToPostDataQueue(href, prevServerResp, windowLoc, isNewIdentit
 	}
 }
 
-function ajax(url, postData, callback)
-{
-console.log("content.ajax", url, postData);
-}
 
 /*** end ***/
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", passwordEnscrypted);
 	/* from content.js */
 	if (request.action === "onAnchorClick")
 	{
@@ -654,9 +653,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	else if (request.action === "hasIdentity")
 	{
 		if (hasIMK())
-			sendResponse({"hasIdentity": true, "isSavepwd": savepwd, "textualIdentity": textualIdentity});
+			sendResponse({"hasIdentity": true, "isSavepwd": savepwd, "hasPassword": hasPassword(), "textualIdentity": textualIdentity});
 		else
-			sendResponse({"hasIdentity": false, "isSavepwd": false, "partialTextualIdentity": partialTextualIdentity});
+			sendResponse({"hasIdentity": false, "isSavepwd": false, "hasPassword": hasPassword(), "partialTextualIdentity": partialTextualIdentity});
 	}
 	else if (request.action === "eraseIdentity")
 	{
@@ -770,10 +769,12 @@ function memzero(e)
 	else
 		throw new Error("Only Uint8Array, Array and BN instances can be wiped");
 }
+/*
 function str2ab(str) //WARNING: nameclash with the same method in utils.js //string to arraybuffer (Uint8Array)
 {
 	return new TextEncoder("utf-8").encode(str);
 }
+*/
 function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.MAX_SAFE_INTEGER or ab.length == 6
 {
 	if (ab.constructor !== Uint8Array)
@@ -975,19 +976,7 @@ async function serializeBlock2(dataToDecrypt, additionalData)
 			data.set(dataToDecrypt, 25);
 			data.reverse();
 			let ti = base56encode(data);
-			let promises = [];
-			for (let i = 0; 19 * i < ti.length; i++)
-			{
-				promises.push(getVerificationChar(ti.substr(19 * i, 19) + " ", i));
-			}
-			return Promise.all(promises).then(verificationChars => {
-				let result = [];
-				for (let i = 0; 19 * i < ti.length; i++)
-				{
-					result[i] = (ti.substr(19 * i, 19) + verificationChars[i]).replace(/(.{4})\B/g, "$1 ");
-				}
-				return result.join("\n");
-			});
+			return addVerificationAndWhitespaceToTextualIdentity(ti);
 		}
 		else
 			return Promise.reject('Argument 2 "additionalData" should be a Uint8Array of length 25');
@@ -1000,51 +989,6 @@ async function serializeBlock2(dataToDecrypt, additionalData)
 function base64url_encode(str)
 {
 	return localSodium.to_base64(localSodium.from_string(str), localSodium.base64_variants.URLSAFE_NO_PADDING);
-}
-//uses BigNum, https://github.com/indutny/bn.js/
-function base56encode(i)
-{
-	let bi;
-	if (i.constructor === BN)
-		bi = i;
-	else if (typeof i == "string" || i.constructor === Uint8Array)
-		bi = new BN(i);
-	else if (typeof i == "number")
-	{
-		if (i > Number.MAX_SAFE_INTEGER)
-			throw new Error('base56encode: ERROR. Argument 1 "i" larger than ' + Number.MAX_SAFE_INTEGER + ' should be represented as String or BigInt');
-		bi = new BN(i);
-	}
-	else
-		throw new Error('base56encode: ERROR. Argument 1 "i" should be an integer represented as String, BigInt or Number');
-	if (bi.isNeg())
-		throw new Error('base56encode: ERROR. Argument 1 "i" should be positive');
-	let result = [];
-	do
-	{
-		let r = bi.modn(56);
-		let q = bi.divn(56);
-		result.push(base56chars[r]);
-		bi = q;
-	}
-	while (bi.gtn(0));
-	return result.join('');
-}
-function base56decode(s)
-{
-	if (typeof s != "string")
-		throw new Error('base56decode: ERROR. Argument 1 "s" should be a String');
-	if (/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]/.test(s))
-		throw new Error('base56decode: ERROR. Argument 1 "s" can only contain valid base56 characters [23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz]');
-	if (s == null || s == "")
-		return 0;
-	let result = new BN(0);
-	for (let i = s.length-1; i >= 0; i--)
-	{
-		result.imuln(56);
-		result.iaddn(base56chars.indexOf(s.charAt(i)));
-	}
-	return result;
 }
 function isValidHostname(hn) // Must be punycode-encoded, like `new URL().hostname` is;
 {
