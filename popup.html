@@ -106,12 +106,12 @@ dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: 
 				<label><span></span><button type="button" id="generateNewIdentity">Generate new Identity</button></label><br/>
 				<label><span></span><progress value="0"></progress></label><br/>
 				<label><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
+				<br/>
 				<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
 				<input type="hidden" name="enscryptedrescuecode"/>
-				<label><span></span>Write this code down on paper</label><br/>
-				<br/>
 				<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}" data-errormessage="Please repeat the Rescue Code from the input above.
 The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/>
+				<label><span></span>Write this code down on paper<br/></label><br/>
 				<label><span>Choose Password</span><input type="password" name="password"/></label><br/>
 				<label><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
 				<label><span></span><button>🖨 Print &amp; Use this Identity</button></label><br/>
