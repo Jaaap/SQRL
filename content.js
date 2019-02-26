@@ -16,7 +16,7 @@ function onAnchorClick(evt)
 				if (result.success && result.url)
 					window.location.href = result.url;
 				else
-					console.log("content", "onAnchorClick", "ERRAC001");
+					console.warn("content", "onAnchorClick", "ERRAC001");
 			});
 			//var anchor = $('#sqrl')
 			//draw arrow from anchor to top right of screen
@@ -30,7 +30,7 @@ function onAnchorClick(evt)
 			var dy = y2 - y1;
 			var l = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 			var a = Math.atan(dy / dx);
-console.log(x1, y1, x2, y2, dx, dy, l);
+//console.log(x1, y1, x2, y2, dx, dy, l);
 			var arrow = document.createElement("div");
 			var shaft1 = document.createElement("hr");
 			var shaft2 = document.createElement("hr");
@@ -84,17 +84,17 @@ filter: drop-shadow(0 0 2px #FFF);
 
 function addEvent(anchor)
 {
-	console.log("FOUND SQRL LINK", anchor);
+	//console.log("FOUND SQRL LINK", anchor);
 	anchor.addEventListener("click", onAnchorClick, false);//anchor may already have this eventListener but it's ok to add it again, see https://www.w3.org/TR/2000/REC-DOM-Level-2-Events-20001113/events.html#Events-EventTarget-addEventListener
 }
-function addEvents(root)
+function addEvents(root, isAttr)
 {
-	console.log("adding events to", root);
+	//console.log("adding events to", root);
 	if (root.tagName == "A" && /^sqrl:\/\//.test(root.getAttribute("href")))
 	{
 		addEvent(root);
 	}
-	else
+	else if (!isAttr)
 	{
 		if (root.nodeType == Node.ELEMENT_NODE || root.nodeType == Node.DOCUMENT_NODE)
 		{
@@ -117,10 +117,10 @@ let observer = new MutationObserver(mutations => {
 		}
 		else if (mutation.type == 'attributes')
 		{
-			addEvents(mutation.target);
+			addEvents(mutation.target, true);
 		}
 	}
 });
-observer.observe(document.body, { attributes:true, attributeFilter: ["href"], childList: true, subtree: true });
+observer.observe(document, { attributes:true, attributeFilter: ["href"], childList: true, subtree: true });
 
 }

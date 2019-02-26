@@ -3,9 +3,9 @@
 
 function onGenerateNewIdentityClick(evt)
 {
-	console.log("onGenerateNewIdentityClick");
+	//console.log("onGenerateNewIdentityClick");
 	chrome.runtime.sendMessage({'action': 'createIdentity' }, result => {
-		console.log("onGenerateNewIdentityClick", result);
+		//console.log("onGenerateNewIdentityClick", result);
 		if (result.success)
 		{
 			$('form#create textarea[name="identity"]').val(result.textualIdentity);
@@ -36,7 +36,7 @@ function onTextualIdentityKeyUp(evt)
 		chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value}, result => {
 			if (!result || !result.success)
 			{
-				console.log("importPartialIdentity", result);
+				console.warn("importPartialIdentity", result);
 			}
 		});
 	}).catch(err => {
@@ -55,7 +55,7 @@ function onIdentityfileChange(evt)
 			reader.onload = function(evt) {
 				let data = evt.target.result;//ArrayBuffer
 				let array = new Uint8Array(data);
-				console.log(array);
+				//console.log(array);
 				if ([206, 260, 292, 324, 356].indexOf(array.length) > -1)
 				{
 					if (ab2str(array.slice(0,8)) == "sqrldata")
@@ -145,12 +145,12 @@ function onImportFormSubmit(evt)
 function onChangepasswordFormSubmit(evt)
 {
 	evt.preventDefault();
-	console.log(this, evt);
+	//console.log(this, evt);
 }
 function onDeletepasswordFormSubmit(evt)
 {
 	evt.preventDefault();
-	console.log(this, evt);
+	//console.log(this, evt);
 }
 function onEraseidentityFormSubmit(evt)
 {
@@ -162,11 +162,17 @@ function onEraseidentityFormSubmit(evt)
 		setPopupState();
 	});
 }
+function onSettingsFormSubmit(evt)
+{
+	evt.preventDefault();
+	let elems = this.elements;
+	chrome.runtime.sendMessage({'action': 'savePassword', 'savepwd': elems.savepwd.checked }, resp => {});
+}
 function onPasswdFormSubmit(evt)
 {
 	evt.preventDefault();
 	let elems = this.elements;
-	chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": elems.password.value, "savepwd": elems.savepwd.checked}, resp => {
+	chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": elems.password.value}, resp => {
 		//console.log("popup.onPasswdFormSubmit", "sendPostDataToActiveTab", JSON.stringify(resp));
 		if (resp == null)
 			showGenericError("onPasswdFormSubmit", "ERRPFS--1", "Problem communicating with background");
@@ -195,7 +201,7 @@ function setPopupState()
 {
 	chrome.runtime.sendMessage({'action': 'hasIdentity' }, result => {
 		$('form#passwd input').enable(result.hasIdentity).val(result.hasPassword ? "........" : "");
-		$('form#passwd input[name="savepwd"]').val(result.isSavepwd);
+		$('form#settings input[name="savepwd"]').val(result.isSavepwd);
 		$('#tab1,#tab2').enable(!result.hasIdentity);
 		$('#tab3,#tab4,#tab5,#tab6').enable(result.hasIdentity);
 		$('#identityhash').text(result.hasIdentity && "textualIdentity" in result ? result.textualIdentity.substr(0, 4) : "");
@@ -229,7 +235,7 @@ function init()
 				chrome.runtime.sendMessage({'action': 'hasPassword' }, result2 => {
 					if (result2 && result2.hasPassword) //password is known to background
 					{
-						chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": null, "savepwd": true}, resp => {
+						chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": null}, resp => {
 							//console.log("popup.init", "sendPostDataToActiveTab", resp);
 							if (resp != null && resp.success && resp.hasOpenRequest)
 							{
@@ -248,6 +254,11 @@ function init()
 		setPopupState();
 		$('#version').text(chrome.runtime.getManifest().version);
 	}
+	if ("browser" in window)
+	{
+		//FIXME: remove this when bug 1366330 is fixed
+		$('form#import input[name="identityfile"]').enable(false).parent().addClass("notyet");
+	}
 	// [ form#create, form#import, form#changepassword, form#deletepassword, form#eraseidentity, form#settings ]
 	$('button#generateNewIdentity').click(onGenerateNewIdentityClick);
 	$('form#create').submit(onCreateFormSubmit);
@@ -259,6 +270,7 @@ function init()
 	$('form input[name="verifypassword"]').bind("input", onInputInput);
 	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
 	$('form#import input[name="identityfile"]').change(onIdentityfileChange);
+	$('form#settings').submit(onSettingsFormSubmit);
 	$('form#passwd').submit(onPasswdFormSubmit);
 	$('input[data-errormessage]').bind("input", onInputInputValidate).bind("invalid", onInputInvalidValidate);
 }

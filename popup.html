@@ -95,8 +95,8 @@ dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: 
 <main>
 <h1><img src="icons/256.png"/>SQRL<span id="identityhash" title="This is the name of the active identity"></span></h1>
 <form id="passwd">
-	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label><label><input type="checkbox" name="savepwd"/>Remember</label>
-	<button style="display:none">Submit</button>
+	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label>
+	<button>Submit</button>
 </form>
 <div>
 	<div>
@@ -169,7 +169,16 @@ The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" 
 		</div>
 	</div>
 	<div>
-		<input type="radio" name="tab" value="7" id="tab7"/><label for="tab7">Help</label>
+		<input type="radio" name="tab" value="7" id="tab7"/><label for="tab7">Settings</label>
+		<div>
+			<form id="settings">
+				<label><span>Password</span><input type="checkbox" name="savepwd"/> Remember</label><br/>
+				<label><span></span><button>Save</button></label>
+			</form>
+		</div>
+	</div>
+	<div>
+		<input type="radio" name="tab" value="8" id="tab8"/><label for="tab8">Help</label>
 		<div>
 			<label><span>Version</span><b id="version">0.0.0</b></label><br/>
 			<label><span>More info</span><a href="https://sqrl.grc.com" target="_blank">sqrl.grc.com</a></label><br/>

@@ -14,7 +14,8 @@ let sodiumPromise = new Promise((resolve, reject) => {
 let savepwd = false, IMK = null, ILK = null, passIv = null, passwordEnscrypted = null, passwordEnscryptSalt = null, passwordEnscryptLogN = 9, passwordEnscryptIter = 1;
 
 chrome.storage.local.get(["encrIMK", "encrILK", "passIv", "passwordEnscryptSalt", "savepwd", "textualIdentity"], function(result){
-	console.log("chrome.storage.local.get", chrome.runtime.lastError, result);
+	if (chrome.runtime.lastError)
+		console.warn("chrome.storage.local.get", chrome.runtime.lastError, result);
 	if (result.encrIMK && result.encrILK && result.passIv && result.passwordEnscryptSalt)
 	{
 		IMK = new Uint8Array(result.encrIMK);
@@ -26,8 +27,7 @@ chrome.storage.local.get(["encrIMK", "encrILK", "passIv", "passwordEnscryptSalt"
 		delete result.encrIMK;
 		delete result.encrILK;
 	}
-	else
-		console.info("background.getStorage", "ERRGS000", "encrIMK or encrILK or passIv or passwordEnscryptSalt not in localStorage");
+	//else console.info("background.getStorage", "ERRGS000", "encrIMK or encrILK or passIv or passwordEnscryptSalt not in localStorage");
 	if (result.textualIdentity)
 	{
 		textualIdentity = result.textualIdentity;
@@ -39,10 +39,11 @@ chrome.storage.local.get(["encrIMK", "encrILK", "passIv", "passwordEnscryptSalt"
 });
 function setSavepwd(newSavepwd)
 {
-console.log("setSavepwd", newSavepwd);
+//console.log("setSavepwd", newSavepwd);
 	savepwd = newSavepwd;
 	chrome.storage.local.set({"savepwd": newSavepwd}, () => {
-		console.log("chrome.storage.local.set", chrome.runtime.lastError);
+		if (chrome.runtime.lastError)
+			console.warn("chrome.storage.local.set", chrome.runtime.lastError);
 	});
 }
 function hasIMK()
@@ -132,7 +133,8 @@ async function setIMLK(newIMK, newILK, newPasswordAB)
 	passIv = newPassIv;
 	passwordEnscryptSalt = newPasswordEnscryptSalt;
 	chrome.storage.local.set({"encrIMK": Array.from(newEncrptdIMK), "encrILK": Array.from(newEncrptdILK), "passIv": Array.from(newPassIv), "passwordEnscryptSalt": Array.from(newPasswordEnscryptSalt)}, () => {
-		console.log("chrome.storage.local.set", chrome.runtime.lastError);
+		if (chrome.runtime.lastError)
+			console.warn("chrome.storage.local.set", chrome.runtime.lastError);
 	});
 	return { success: true };
 }
@@ -202,13 +204,13 @@ async function doServerRequest(href, server, windowLoc, passwdFromPopupAB, tabId
 
 	let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
 	//memzero(SitePrivateKey);
-console.log("doServerRequest", "client", clientData);
-console.log("doServerRequest", "server", server);
-console.log("doServerRequest", "ids", ids);
+//console.log("doServerRequest", "client", clientData);
+//console.log("doServerRequest", "server", server);
+//console.log("doServerRequest", "ids", ids);
 
 
 // STEP 1: do q cmd=query
-console.log("fetch", hurl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
+//console.log("fetch", hurl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
 	let resp1 = await fetch(hurl.href, {
 		"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'),
 		"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -309,7 +311,7 @@ console.log("fetch", hurl.href, ["client=" + encodeURIComponent(client), "server
 function getResponseAsMap(responseText)
 {
 	let responseLines = base64url_decode(responseText).split("\r\n");
-console.log("getResponseAsMap", "server response", JSON.stringify(responseLines));
+//console.log("getResponseAsMap", "server response", JSON.stringify(responseLines));
 	let responseMap = {};
 	for (let line of responseLines)
 	{
@@ -327,7 +329,7 @@ function getSukVuk(ILK)//ILK IS MEMZERO'D by this function
 	let randomLock = localSodium.randombytes_buf(32);
 	let SUK = localSodium.crypto_scalarmult_base(randomLock);
 	let bytesToSign = localSodium.crypto_scalarmult(randomLock, ILK);
-console.log("getSukVuk", "randomLock", ab2hex(randomLock));
+//console.log("getSukVuk", "randomLock", ab2hex(randomLock));
 	memzero(randomLock);
 	memzero(ILK);
 	let vukKeypair = localSodium.crypto_sign_seed_keypair(bytesToSign);
@@ -363,7 +365,7 @@ async function createIdentity()
 	if (enscryptedNewRescueCode.length !== 32)
 		throw new Error("ERRCI002", "Length of enscryptedNewRescueCode should be 32");
 	let dataToDecrypt = await aesGcmEncrypt(newIUK, additionalData, enscryptedNewRescueCode, new Uint8Array(12));
-console.log("createIdentity", "IUK", ab2hex(newIUK));
+//console.log("createIdentity", "IUK", ab2hex(newIUK));
 	memzero(newIUK);
 	let newTextualIdentity = await serializeBlock2(dataToDecrypt, additionalData);
 	return {"textualIdentity": newTextualIdentity, "rescueCode": newRescueCode.join("-"), "enscryptedRescueCode": JSON.stringify(Array.from(enscryptedNewRescueCode))};
@@ -385,7 +387,8 @@ function importIdentity(ti, rescueCode, enscryptedRescueCode, newPassword, sendR
 					let extractedBlock2 = parseBlockType2(ti);
 					textualIdentity = ti;
 					chrome.storage.local.set({"textualIdentity": ti}, () => {
-						console.log("chrome.storage.local.set", chrome.runtime.lastError);
+						if (chrome.runtime.lastError)
+							console.warn("chrome.storage.local.set", "textualIdentity", chrome.runtime.lastError);
 					});
 					//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
 					let prms = enscryptedRescueCode == null ? enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptLogN, extractedBlock2.enscryptIter, (step, max) => {
@@ -396,9 +399,9 @@ function importIdentity(ti, rescueCode, enscryptedRescueCode, newPassword, sendR
 						aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedRescueCodeLocal, new Uint8Array(12)).then(IUK => {
 							let newIMK = enhash(IUK);
 							let newILK = localSodium.crypto_scalarmult_base(IUK);
-console.log("importIdentity", "IUK", ab2hex(IUK));
-console.log("importIdentity", "IMK", ab2hex(newIMK));
-console.log("importIdentity", "ILK", ab2hex(newILK));
+//console.log("importIdentity", "IUK", ab2hex(IUK));
+//console.log("importIdentity", "IMK", ab2hex(newIMK));
+//console.log("importIdentity", "ILK", ab2hex(newILK));
 							memzero(IUK);
 							let newPasswordAB = str2ab(newPassword);//FIXME: dont allow empty password
 							setIMLK(newIMK, newILK, newPasswordAB).then(result => {
@@ -538,7 +541,7 @@ function addRequestToPostDataQueue(href, prevServerResp, windowLoc, isNewIdentit
 /*** end ***/
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", passwordEnscrypted);
+//console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", passwordEnscrypted);
 	/* from content.js */
 	if (request.action === "onAnchorClick")
 	{
@@ -577,7 +580,7 @@ console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", pa
 						if (tabsResp[0].url === origRequest.windowLoc)
 						{
 							let passwdAB = request.password == null ? null : str2ab(request.password); //is memzero'd by getPostDataAsync
-							setSavepwd(request.savepwd);
+							//setSavepwd(request.savepwd);
 							doServerRequest(origRequest.href, origRequest.prevServerResp, origRequest.windowLoc, passwdAB, tabId, origRequest.isNewIdentity, origRequest.sendResponseToContent).then(data => {
 								if (data && data.success)
 								{
@@ -586,12 +589,12 @@ console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", pa
 								}
 								else
 								{
-									console.warn("background.requestAction", "ERRRA003", err.message, err.fileName);//FIXME
+									console.warn("background.requestAction", "ERRRA003");//, err.message, err.fileName);
 									origRequest.sendResponseToContent({"success": false, "errorCode": "ERRRA003"}); //to content
 									sendResponse({"success": false, "errorCode": "ERRRA003"}); // to popup
 								}
 							}).catch(err => {
-								console.warn("background.requestAction", "ERRRA004", err.message, err.fileName);//FIXME
+								console.warn("background.requestAction", "ERRRA004");//, err.message, err.fileName);
 								if (err.message == "ERRPD010")		{ showBadgeError("PASS", 6, tabId); }
 								else if (err.message == "ERRPD009")	{ showBadgeError("IDTY", 6, tabId); }
 								else if (err.message == "ERRPD008")	{ showBadgeError("COA", 0, tabId); }
@@ -610,7 +613,7 @@ console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", pa
 							sendResponse({"success": true, "hasOpenRequest": false});
 						}
 					} catch (err) {
-						console.warn("background.requestAction", "ERRRA005", err.message);//FIXME
+						console.warn("background.requestAction", "ERRRA005");//, err.message);
 						sendResponse({"success": false, "errorCode": "ERRRA005"});
 					}
 				}
@@ -646,6 +649,11 @@ console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", pa
 	{
 		sendResponse({"hasPassword": hasPassword()});
 	}
+	else if (request.action === "savePassword")
+	{
+		setSavepwd(request.savepwd);
+		sendResponse({"isSavepwd": savepwd});
+	}
 	else if (request.action === "isSavepwd")
 	{
 		sendResponse({"isSavepwd": savepwd});
@@ -672,7 +680,8 @@ console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", pa
 		passwordEnscryptSalt = null;
 		textualIdentity = null;
 		chrome.storage.local.remove(["encrIMK", "encrILK", "textualIdentity", "passwordEnscryptSalt", "passIv"], () => {
-			console.log("chrome.storage.local.remove", chrome.runtime.lastError);
+			if (chrome.runtime.lastError)
+				console.warn("chrome.storage.local.remove", chrome.runtime.lastError);
 			sendResponse(chrome.runtime.lastError);
 		});
 		return true;
@@ -734,7 +743,8 @@ console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", pa
 function showBadgeError(txt, animateCount, tabId)//animateCount must be even
 {
 	chrome.browserAction.setBadgeBackgroundColor({color: "red"});
-	chrome.browserAction.setBadgeTextColor({color: "white"});
+	if (chrome.browserAction.setBadgeTextColor)
+		chrome.browserAction.setBadgeTextColor({color: "white"});
 	chrome.browserAction.setBadgeText({"text": animateCount % 2 ? "" : txt, "tabId": tabId});
 	if (animateCount > 0)
 	{
