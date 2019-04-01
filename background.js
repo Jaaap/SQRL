@@ -958,19 +958,24 @@ function parseBlockType2(ti)
 		//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
 		let blockSize = ab2int(identityData.slice(0, 2));
 		let blockType = ab2int(identityData.slice(2, 4));
-		if (blockType == 2 && blockSize == 73)
+		if (blockType == 2)
 		{
-			let data = identityData.slice(0, blockSize);
-			return {
-				"enscryptSalt": data.slice(4, 20),
-				"enscryptLogN": ab2int(data.slice(20, 21)),
-				"enscryptIter": ab2int(data.slice(21, 25)),
-				"dataToDecrypt": data.slice(25, 73),
-				"additionalData": data.slice(0, 25)
-			};
+			if (blockSize == 73)
+			{
+				let data = identityData.slice(0, blockSize);
+				return {
+					"enscryptSalt": data.slice(4, 20),
+					"enscryptLogN": ab2int(data.slice(20, 21)),
+					"enscryptIter": ab2int(data.slice(21, 25)),
+					"dataToDecrypt": data.slice(25, 73),
+					"additionalData": data.slice(0, 25)
+				};
+			}
+			else
+				throw new Error('Argument 1 "ti" should start with a data block of length 73');
 		}
 		else
-			throw new Error('Argument 1 "ti" should start with a type2 data block of length 73');
+			throw new Error('Argument 1 "ti" should start with a type2 data block');
 	}
 	else
 		throw new Error('base56decoded length of first argument "ti" should be 73, 127, 159, 191 or 223');

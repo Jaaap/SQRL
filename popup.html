@@ -5,6 +5,7 @@
 <title>SQRL</title>
 <!--link rel="stylesheet" href="chrome://browser/content/extension.css"/-->
 <script src="bn.js" async></script>
+<script src="jsQR.js" async></script>
 <script src="jQueryLight.js" defer></script>
 <script src="utils.js" defer></script>
 <script src="popup.js" defer></script>
@@ -81,6 +82,8 @@ button.failure::after,label.failure::after { content: " ❌"; }
 
 dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: red; }
 
+canvas#qrcanvas { position: absolute; border: 1px solid #000; background-color: #999; display: none; }
+
 .shake { animation: 0.4s linear 0s normal none 1 running shake; }
 @keyframes shake {
 	8%, 41% { transform: translate(-10px, 0); }
@@ -105,7 +108,7 @@ dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: 
 			<form id="create">
 				<label><span></span><button type="button" id="generateNewIdentity">Generate new Identity</button></label><br/>
 				<label><span></span><progress value="0"></progress></label><br/>
-				<label><span>Identity</span><textarea name="identity" readonly></textarea></label><br/>
+				<label><span>Identity</span><textarea name="identity" spellcheck="false" readonly></textarea></label><br/>
 				<br/>
 				<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
 				<input type="hidden" name="enscryptedrescuecode"/>
@@ -122,8 +125,10 @@ The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" 
 		<input type="radio" name="tab" value="2" id="tab2"/><label for="tab2">Import Identity</label>
 		<div>
 			<form id="import">
-				<label><span>Choose .sqrl file</span><input type="file" name="identityfile" accept=".sqrl"/></label>
-				<label><span>or<br/>Textual Identity*</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83" required></textarea></label><b></b><br/>
+				<label><span>Choose .sqrl file</span><input type="file" name="identityfile" accept=".sqrl,.sqrc"/></label><br/>
+				<!--label><span>Scan QR code</span><button type="button" name="qrscan">Scan</button></label><br/-->
+				<canvas id="qrcanvas"></canvas>
+				<label><span>or<br/>Textual Identity*</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83" spellcheck="false" required></textarea></label><b></b><br/>
 				<label><span>Rescue Code*</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){5}\d{4}" data-errormessage="The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/>
 				<label><span>Choose Password</span><input type="password" name="password"/></label><br/>
 				<label><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
@@ -136,7 +141,7 @@ The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" 
 		<input type="radio" name="tab" value="3" id="tab3"/><label for="tab3">Export Identity</label>
 		<div>
 			<form id="export">
-				<label><span>Identity</span><textarea name="identity" readonly></textarea></label><b></b><br/>
+				<label><span>Identity</span><textarea name="identity" spellcheck="false" readonly></textarea></label><b></b><br/>
 			</form>
 		</div>
 	</div>
