@@ -11,7 +11,13 @@ For **Chrome** go to chrome://extensions/, enable "Developer mode" and then "Loa
 For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r SQRL.xpi *` then open FireFox Developer Edition (normal Firefox will not work), go to about:config, search for xpinstall.signatures.required and set it to false, then go to about:addons, Click on the gear icon (⚙) pulldown, click "Install Addon From File..." and open the SQRL.xpi file.
 
 ## TODO's
-- Check popup with different zoom settings
+- [x] Better error messages on Rescue Code input
+- [ ] Remove blocking of cross-origin authentications
+- [ ] Add user confirmation of cross-origin authentications, show domain
+- [ ] Change password functionality
+- [ ] Move identity import to separate tab, not in popup
+- [ ] Add identity import by QR code
+
 
 ## Feature requests
 - Scan QR codes via webcam
