@@ -16,11 +16,10 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 - [ ] Add user confirmation of cross-origin authentications, show domain
 - [ ] Change password functionality
 - [ ] Move identity import to separate tab, not in popup
-- [ ] Add identity import by QR code
+- [ ] Add identity import by QR code via webcam
 
 
 ## Feature requests
-- Scan QR codes via webcam
 - Keep a list of sites where SQRL was used
 	- Click a link to open the site and log in to it
 	- Panic button which locks all known sites
