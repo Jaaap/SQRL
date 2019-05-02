@@ -937,6 +937,7 @@ async function aesGcmCrypt(isEncrypt, data, additionalData, password, iv)
 		return Promise.reject('Argument 1 "data" should be a non-empty Uint8Array');
 }
 
+/*
 async function validateTextualIdentity(ti)
 {
 	let lines = ti.split(/\r?\n/);
@@ -969,6 +970,7 @@ async function validateTextualIdentity(ti)
 	}
 	return { "success": true, "lineNr": lines.length };
 }
+*/
 function parseBlockType2(ti)
 {
 	let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();

@@ -24,19 +24,19 @@ function ab2str(ab)
 	return new TextDecoder("utf-8").decode(ab);
 }
 
-async function validateTextualIdentity(ti)
+async function validateTextualIdentity(ti, allowTrailingSpace)
 {
 	let lines = ti.split(/\r?\n/);
-	if (/\s+$/.test(ti))
-		return { "success": false, "lineNr": lines.length - 1, "message": `Trailing whitespace on last line.\nRemove any trailing newlines or spaces or tabs` };
+	if (!allowTrailingSpace && /\s+$/.test(ti))
+		return { "success": false, "lineNr": lines.length - 1, "message": `Trailing whitespace on last line.\nRemove any trailing spaces or tabs` };
 	let base56invalidsCharsRe = new RegExp(`([^${base56chars}])`);
 	for (let [lIndex, line] of lines.entries())
 	{
 		if (/^\s+/.test(line))
-			return { "success": false, "lineNr": lIndex, "message": `Leading whitespace on line ${lIndex + 1}.\nRemove any leading newlines or spaces or tabs` };
-		if (/\s+$/.test(line))
-			return { "success": false, "lineNr": lIndex, "message": `Trailing whitespace on line ${lIndex + 1}.\nRemove any trailing newlines or spaces or tabs` };
+			return { "success": false, "lineNr": lIndex, "message": `Leading whitespace on line ${lIndex + 1}.\nRemove any leading spaces or tabs` };
 		let blocks = line.split(/ /);
+		if ((lIndex < lines.length - 1 || blocks.length > 5) && /\s+$/.test(line))
+			return { "success": false, "lineNr": lIndex, "message": `Trailing whitespace on line ${lIndex + 1}.\nRemove any trailing spaces or tabs` };
 		if (blocks.length < 5 && lIndex < lines.length - 1)
 			return { "success": false, "lineNr": lIndex, "message": `Not enough blocks on line ${lIndex + 1}.\nA line must contain 5 blocks (of 4 characters), separated by spaces, unless it is the last line.` };
 		if (blocks.length > 5)

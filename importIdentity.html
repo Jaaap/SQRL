@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>SQRL</title>
+<link rel="stylesheet" href="style.css"/>
+<script src="bn.js" defer></script>
+<script src="jsQR.js" defer></script>
+<script src="jQueryLight.js" defer></script>
+<script src="utils.js" defer></script>
+<script src="importIdentity.js" defer></script>
+</head>
+<body>
+<main>
+<h1><img src="icons/256.png"/>SQRL</h1>
+<div>
+	<form id="import">
+		<label><span>Choose .sqrl file</span><input type="file" name="identityfile" accept=".sqrl,.sqrc"/></label><br/>
+		 or<br/>
+		<label><span>Scan QR code</span><button type="button" name="qrscan">Scan 📷</button></label><br/>
+		<canvas id="qrcanvas"></canvas>
+		<br/>
+		<label><span>Textual Identity</span><textarea name="identity" spellcheck="false" readonly></textarea></label><br/>
+		<label><span></span><button title="Closes this tab.
+After that, click the blue SQRL icon in the top right of the browser window to continue importing this identity.">Continue import</button></label><br/>
+	</form>
+</div>
+</main>
+</body>
+</html>

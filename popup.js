@@ -33,8 +33,7 @@ function onInputInput(evt)
 function onTextualIdentityKeyUp(evt)
 {
 	let ta = evt.target;
-	//let validationData = validateTextualIdentity(ta.value);
-	validateTextualIdentity(ta.value).then(validationData => {
+	validateTextualIdentity(ta.value, true).then(validationData => {
 		$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
 		$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
 		chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value}, result => {
