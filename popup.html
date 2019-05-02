@@ -4,120 +4,43 @@
 <meta charset="UTF-8">
 <title>SQRL</title>
 <!--link rel="stylesheet" href="chrome://browser/content/extension.css"/-->
+<link rel="stylesheet" href="style.css"/>
 <script src="bn.js" async></script>
-<script src="jsQR.js" async></script>
 <script src="jQueryLight.js" defer></script>
 <script src="utils.js" defer></script>
 <script src="popup.js" defer></script>
-<style>
-:root { --sqrl-blue: #007CC3; --grey: #7FBDE1; }
-* { box-sizing: border-box; }
-html,body { display: flex; margin: 0; flex-direction: column; }
-body,label,input { font-size: 17px; }
-/* Fx mac: 784w x 584h */
-body { font-family: Verdana, Helvetica; width: 680px; height: 584px; }
-body.passwdOnly { height: 122px; }
-body.passwdOnly>main>div { display: none; }
-button {
-	text-align: center;
-	display: inline-block;
-	text-align: center;
-	text-shadow: 0.5px 0.5px 0 #FFF;
-	font-weight: bold;
-	font-size: 16px;
-	line-height: 25px;
-	border: 0 none;
-	border-radius: 6px;
-	box-shadow: 1px 1px 1px rgba(0,0,0,.3), inset 1px 1px 1px rgba(255,255,255,.4);
-	background: linear-gradient(to bottom, #FFF 0%, #CCC 100%);
-}
-button:hover {
-	box-shadow: 1px 1px 1px rgba(0,0,0,.29), inset 0px 0px 2px rgba(0,0,0, .5);
-}
-
-button:active {
-	box-shadow: inset 0px 0px 3px rgba(0,0,0, .8);
-}
-textarea,input { font-family: "Lucida Console", Menlo, monospace; }
-textarea { font-size: 17px; }
-.notyet { opacity: 0.3; }
-input[type="text"],input[type="password"] { border: 0 none; border-radius: 4px; padding: 0 6px; font-family: monospace; font-size: 15px; line-height: 23px; }
-input[readonly],textarea[readonly] { background-color: #DDD; }
-::-webkit-input-placeholder { color: #CCC; }
-::-moz-placeholder { color: #CCC; }
-:not(output):-moz-ui-invalid { box-shadow: inset 0 0 1.5px 1px red, 0 0 1.5px 1px red; }
-
-main { height: 100%; margin: 4px; padding: 8px; background-color: var(--sqrl-blue); color: #FFF; border-radius: 4px; }
-h1 { margin: 0 0 16px 0; font-size: 46px; line-height: 32px; }
-h1>img { float: right; width: 39px; height: 39px; vertical-align: top; border: 1px solid #FFF; border-radius: 8px; box-shadow: 0 0 4px #FFF; }
-h1>span { font-size: 16px; padding-left: 24px; }
-
-label { vertical-align: top; }
-label.pwd { display: inline-block; margin: 0 0 12px 0; }
-label>span { display: inline-block; width: 152px; vertical-align: top; }
-label>input[type="checkbox"]+span { width: 400px; vertical-align: middle; }
-label>input[type="text"],label>input[type="number"],label>input[type="password"],label>input[type="file"],label>textarea,label>progress,label>button { width: 270px; vertical-align: super; }
-label>input[type="file"] { width: 280px; }
-label>textarea { border: 0 none; height: 150px; line-height: 22px; }
-#import label>textarea,#export label>textarea { height: 280px; }
-label>dl { display: inline-block; width: 300px; margin: 0; }
-label.pwd>input { width: 380px; }
-label+b { padding: 0 0 0 8px; cursor: pointer; vertical-align: top; display: inline-block; width: 28px; line-height: 22px; }
-label+b:hover { text-shadow: 0 0 4px #FFF; }
-input.confirm[type="checkbox"]+button+button { display: none; }
-input.confirm[type="checkbox"]:checked+button { display: none; }
-input.confirm[type="checkbox"]:checked+button+button { display: inline-block; color: red; }
-
-main>div { position: absolute; top: 102px; left: 4px; width: 668px; height: 474px; }
-div>input[type="radio"] { display: none; }
-div>input[type="radio"]+label { display: block; width: 200px; padding-left: 8px; cursor: pointer; }
-div>input[type="radio"]:not(:disabled)+label:hover { background-color: var(--grey); }
-div>input[type="radio"]:disabled+label { color: var(--grey); cursor: default; }
-div>input[type="radio"]:checked+label { background-color: #FFF; color: var(--sqrl-blue); }
-div>input[type="radio"]~div { position: absolute; top: 0; left: 200px; right: 0; bottom: 0; border: 1px solid #FFF; display: none; padding: 8px; border-bottom-right-radius: 2px }
-div>input[type="radio"]:checked~div { display: block; }
-
-button.success::after,label.success::after { content: " ✅"; }
-button.failure::after,label.failure::after { content: " ❌"; }
-
-dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: red; }
-
-canvas#qrcanvas { position: absolute; border: 1px solid #000; background-color: #999; display: none; }
-
-.shake { animation: 0.4s linear 0s normal none 1 running shake; }
-@keyframes shake {
-	8%, 41% { transform: translate(-10px, 0); }
-	25%, 58% { transform: translate(10px, 0); }
-	75% { transform: translate(-5px, 0); }
-	92% { transform: translate(5px, 0); }
-	0%, 100% { transform: translate(0, 0); }
-}
-</style>
 </head>
 <body>
 <main>
 <h1><img src="icons/256.png"/>SQRL<span id="identityhash" title="This is the name of the active identity"></span></h1>
 <form id="passwd">
+	Login to <code>-</code>?<br/>
 	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label>
-	<button>Submit</button>
+	<button>Login</button>
 </form>
 <div>
 	<div>
 		<input type="radio" name="tab" value="1" id="tab1"/><label for="tab1">Create Identity</label>
 		<div>
 			<form id="create">
-				<label><span></span><button type="button" id="generateNewIdentity">Generate new Identity</button></label><br/>
+				<label><span></span><button type="button" id="generateNewIdentity" title="This will generate a new, random identity.
+Be patient, this may take 10 seconds or more.">Generate new Identity</button></label><br/>
 				<label><span></span><progress value="0"></progress></label><br/>
 				<label><span>Identity</span><textarea name="identity" spellcheck="false" readonly></textarea></label><br/>
 				<br/>
-				<label><span>Rescue Code</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
+				<label title="Generated Rescue Code.
+WRITE THIS DOWN ON PAPER and store in a safe place.
+
+You will need this code later for:
+	- Importing your identity (on another device)
+	- Rekeying your identity"><span>RescueCode</span><input type="text" name="rescuecode" readonly/></label><b title="Show Rescue Code">👁</b><br/>
+				<label><span></span>Write this code down on paper<br/></label>
 				<input type="hidden" name="enscryptedrescuecode"/>
-				<label><span>Rescue Code*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}" data-errormessage="Please repeat the Rescue Code from the input above.
-The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/>
-				<label><span></span>Write this code down on paper<br/></label><br/>
-				<label><span>Choose Password</span><input type="password" name="password"/></label><br/>
-				<label><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
-				<label><span></span><button>🖨 Print &amp; Use this Identity</button></label><br/>
+				<label title="Enter the Rescue Code you just wrote down on paper"><span>RescueCode Again*</span><input type="text" name="verifyrescuecode" pattern="(\d{4}-?){5}\d{4}" data-errormessage="Please repeat the Rescue Code from the input above.
+The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/><br/>
+				<label title="Choose a new password"><span>Password</span><input type="password" name="password"/></label><br/>
+				<label title="Repeat the password entered above"><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
+				<label><span></span><button>🖨 Print &amp; Save</button></label><br/>
 			</form>
 		</div>
 	</div>
@@ -125,15 +48,14 @@ The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" 
 		<input type="radio" name="tab" value="2" id="tab2"/><label for="tab2">Import Identity</label>
 		<div>
 			<form id="import">
-				<label><span>Choose .sqrl file</span><input type="file" name="identityfile" accept=".sqrl,.sqrc"/></label><br/>
-				<!--label><span>Scan QR code</span><button type="button" name="qrscan">Scan</button></label><br/-->
-				<canvas id="qrcanvas"></canvas>
-				<label><span>or<br/>Textual Identity*</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83" spellcheck="false" required></textarea></label><b></b><br/>
-				<label><span>Rescue Code*</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){5}\d{4}" data-errormessage="The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/>
-				<label><span>Choose Password</span><input type="password" name="password"/></label><br/>
-				<label><span>Password Again</span><input type="password" name="verifypassword"/></label><br/>
+				<label><span></span><button type="button" id="openImportIdentityTab" title="This will open a new tab">Import from file or QR code</button></label><br/>
+				<label><span>Textual Identity*</span><textarea name="identity" placeholder="KbEx Gvz6 bECA Zrq3 HSxg n2cp idwN UnGj eyM7 w7qK mgMg rgs3 DBGf PS8E RbUB kc2S 62AR mhAL caBj gSZt FPVP XDLD QMi9 LcY4 caYY J6eR q83" spellcheck="false" required></textarea></label><b></b><br/>
+				<label title="Enter the Rescue Code for this Identity"><span>Rescue Code*</span><input type="password" name="rescuecode" placeholder="1234-5678-9012-3456-7890-1234" pattern="(\d{4}-?){5}\d{4}" data-errormessage="The Rescue Code should contain 6 groups of 4 digits, separated by a minus sign" required/></label><br/><br/>
+				<label title="Choose a new password for this installation.
+This can be the same password you use for this identity on other devices."><span>New password</span><input type="password" name="password"/></label><br/>
+				<label title="Repeat the password entered above"><span>Password again</span><input type="password" name="verifypassword"/></label><br/>
 				<label><span></span><progress value="0"></progress></label><br/>
-				<label><span></span><button>Import</button></label><br/>
+				<label><span></span><button>Save</button></label><br/>
 			</form>
 		</div>
 	</div>
