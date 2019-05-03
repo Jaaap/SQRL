@@ -141,3 +141,13 @@ async function addVerificationAndWhitespaceToTextualIdentity(ti)
 	}
 	return result.join("\n");
 }
+function getBrowser()
+{
+	if ((!!window.opr && !!opr.addons) || !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0)
+		return "opera";
+	if (typeof InstallTrigger !== 'undefined')
+		return "firefox";
+	if (!!document.documentMode && !!window.StyleMedia)
+		return "edge";
+	return "chrome";
+}

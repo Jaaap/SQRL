@@ -74,7 +74,9 @@ button.failure::after,label.failure::after { content: " ❌"; }
 
 dl>dt { display: inline-block; padding: 1px 3px; color: #FFF; background-color: red; }
 
-canvas#qrcanvas { position: absolute; border: 1px solid #000; background-color: #999; display: none; }
+div#qrscan { position: absolute; left: 12px; text-align: center; background-color: var(--sqrl-blue); padding: 4px; box-shadow: 0 0 1px #FFF; display: none; }
+div#qrscan.show { display: block; }
+canvas { background-color: #999; border: 1px solid #000; display: block; }
 
 label[title]>span,span[title] { text-decoration: underline dotted; }
 

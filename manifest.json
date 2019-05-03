@@ -3,7 +3,7 @@
 	"description": "__MSG_description__",
 	"default_locale": "en",
 	"manifest_version": 2,
-	"version": "0.0.39",
+	"version": "0.0.40",
 	"homepage_url": "https://github.com/Jaaap/SQRL",
 	"applications": {
 		"gecko": {
@@ -23,7 +23,7 @@
 		{
 			"matches": ["<all_urls>"],
 			"js": ["content.js"],
-			"run_at": "document_idle"
+			"run_at": "document_end"
 		}
 	],
 	"browser_action": {

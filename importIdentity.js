@@ -62,34 +62,51 @@ function drawLine(canvas, begin, end, color)//FIXME: move to utils
 	canvas.strokeStyle = color;
 	canvas.stroke();
 }
+let qrOsErrorText = {
+	"mac":	{"NotFoundError":'For macOS, go to System Preferences > Security & Privacy > Privacy > Camera and check the box for this browser',"NotAllowedError":""},
+	"win":	{"NotFoundError":"","NotAllowedError":""},
+	"cros":	{"NotFoundError":"","NotAllowedError":""},
+	"android":	{"NotFoundError":"","NotAllowedError":""},
+	"linux":	{"NotFoundError":"","NotAllowedError":""},
+	"openbsd":	{"NotFoundError":"","NotAllowedError":""}
+};
+let qrBrowserErrorText = {
+"firefox":	{"NotFoundError":"","NotAllowedError":"In Firefox, go to Preferences > Privacy & Security > Permissions > Camera."},
+"opera":	{"NotFoundError":"","NotAllowedError":""},
+"chrome":	{"NotFoundError":"","NotAllowedError":"In Chrome, go to Settings > Privacy and security > Site settings > Camera."},
+"edge":	{"NotFoundError":"","NotAllowedError":""}
+};
+let stopQrScan = false;
 function onQrscanClick(evt)
 {
+	stopQrScan = false;
 	let video = document.createElement("video");
+	//<div id="qrscan"><button id="cancelqrscan" type="button">Cancel</button><canvas id="qrcanvas"></canvas></div>
+	$('div#qrscan').addClass("show");
 	let canvasElement = document.getElementById("qrcanvas");
 	let canvas = canvasElement.getContext("2d");
 	let stream;
 
 	navigator.mediaDevices.getUserMedia({ "audio": false, "video": true }).then(function(strm) {
-		canvasElement.style.display = "block";
 		stream = strm;
 		video.srcObject = strm;
 		video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
 		video.play();
 		requestAnimationFrame(tick);
 	}).catch(function(err){
-		//let os = chrome.runtime.getPlatformInfo().os;
-//console.error(err, os);
+		let os = ("chrome" in window && "runtime" in chrome) ? chrome.runtime.getPlatformInfo().os : "mac"; //"mac", "win", "android", "cros", "linux", or "openbsd"
+		let browser = getBrowser(); //"firefox","edge","opera","chrome";
+//console.error(err, os, browser);
 		if (err.name == "NotFoundError")
-			alert("No Camera found.\nIf you do have a Camera, make sure the browser is allowed to use it.");//FIXME: "System Preferences > Security & Privacy > Privacy > Camera > Firefox.app"
+			alert("No Camera found.\nIf you do have a Camera, make sure the browser is allowed to use it.\n\n" + qrOsErrorText[os].NotFoundError);//FIXME: "System Preferences > Security & Privacy > Privacy > Camera > Firefox.app"
 		else if (err.name == "NotAllowedError")
-			alert("There is no permission to use the Camera.\nSee about:preferences#privacy");//FIXME: Chrome
+			alert("There is no permission to use the Camera.\n\n" + qrBrowserErrorText[browser].NotAllowedError);//FIXME: Chrome
 		else
 			alert("Error accessing Webcam for video:\n" + err.name + "\n\n" + err.message);
 	});
 
 	function tick()
 	{
-		let done = false;
 		if (video.readyState === video.HAVE_ENOUGH_DATA)
 		{
 			//FIXME: set all these heights and widths only once, when UserMedia is loaded
@@ -98,27 +115,34 @@ function onQrscanClick(evt)
 			canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
 			let imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
 			let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-			if (code)
+			if (code && code.data)
 			{
 				drawLine(canvas, code.loc.topLeftCorner, code.loc.topRightCorner, "#FF3B58");
 				drawLine(canvas, code.loc.topRightCorner, code.loc.bottomRightCorner, "#FF3B58");
 				drawLine(canvas, code.loc.bottomRightCorner, code.loc.bottomLeftCorner, "#FF3B58");
 				drawLine(canvas, code.loc.bottomLeftCorner, code.loc.topLeftCorner, "#FF3B58");
 				document.querySelector('form#import textarea[name="identity"]').value = code.data;
-				video.pause();
-				video.srcObject = null;
-				done = true;
-				stream.getTracks().forEach(track => track.stop());
-				setTimeout(function(){
-					canvas.fillStyle = "blue";
-					canvas.fillRect(0, 0, canvasElement.width, canvasElement.height);
-					canvasElement.style.display = "none";
-				}, 500);
+				stopQrScan = true;
 			}
 		}
-		if (!done)
+		if (stopQrScan)
+		{
+			video.pause();
+			video.srcObject = null;
+			stream.getTracks().forEach(track => track.stop());
+			setTimeout(function(){
+				canvas.fillStyle = "blue";
+				canvas.fillRect(0, 0, canvasElement.width, canvasElement.height);
+				$('div#qrscan').removeClass("show");
+			}, 500);
+		}
+		else
 			requestAnimationFrame(tick);
 	}
+}
+function onCancelqrscanClick(evt)
+{
+	stopQrScan = true;
 }
 function onImportFormSubmit(evt)
 {
@@ -138,6 +162,7 @@ function init()
 	}
 	$('form#import input[name="identityfile"]').change(onIdentityfileChange);
 	$('form#import button[name="qrscan"]').click(onQrscanClick);
+	$('form#import button#cancelqrscan').click(onCancelqrscanClick);
 	$('form#import').submit(onImportFormSubmit);
 }
 if ("chrome" in window && "runtime" in chrome)
