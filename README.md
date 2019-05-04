@@ -12,12 +12,12 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 
 ## TODO's
 - [x] Better error messages on Rescue Code input
-- [ ] Remove blocking of cross-origin authentications
-- [ ] Add user confirmation of cross-origin authentications, show domain
+- [x] Remove blocking of cross-origin authentications
+- [x] Add user confirmation of cross-origin authentications, show domain
 - [ ] Change password functionality
-- [ ] Move identity import to separate tab, not in popup
-- [ ] Add identity import by QR code via webcam
-
+- [x] Move identity import to separate tab, not in popup
+- [x] Add identity import by QR code via webcam
+- [ ] Font-family on Firefox/Ubuntu is wrong
 
 ## Feature requests
 - Keep a list of sites where SQRL was used
