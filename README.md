@@ -61,7 +61,7 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
   - [ ] File
     - [ ] .sqrl
     - [ ] .sqrc
-- Import Identity
+- [x] Import Identity
   - [x] Text
   - [x] QR Code
   - [x] File
