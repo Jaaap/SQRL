@@ -55,6 +55,7 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 - [ ] Client secrets (SIN/INS/PINS)
 - [ ] Change password with old password
 - [ ] Change password with Rescue Code
+- [x] Show domain name on cross-origin authentications
 - [ ] Export Identity
   - [x] Text
   - [ ] QR Code
