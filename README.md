@@ -26,24 +26,24 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 
 ## SQRL feature status
 - [ ] cmd's
-- - [ ] disable
-- - [ ] enable (URS/SUK)
-- - [ ] remove (URS/SUK)
+  - [ ] disable
+  - [ ] enable (URS/SUK)
+  - [ ] remove (URS/SUK)
 - [ ] opt's
-- - [x] Client-Provided Sessions (CPS)
-- - [ ] sqrlonly
-- - [ ] hardlock
-- - [ ] suk
+  - [x] Client-Provided Sessions (CPS)
+  - [ ] sqrlonly
+  - [ ] hardlock
+  - [ ] suk
 - [ ] tif's
-- - [x] ID_MATCH (1) 
-- - [ ] PREV_ID_MATCH (2) 
-- - [ ] IP_MATCH (4) 
-- - [ ] SQRL_DISABLED (8) 
-- - [ ] UNSUPPORTED_FUNCTION (16) 
-- - [ ] TRANSIENT_ERROR (32) 
-- - [ ] COMMAND_FAILED (64) 
-- - [ ] CLIENT_FAILURE (128) 
-- - [ ] BAD_ID (256) 
+  - [x] ID_MATCH (1) 
+  - [ ] PREV_ID_MATCH (2) 
+  - [ ] IP_MATCH (4) 
+  - [ ] SQRL_DISABLED (8) 
+  - [ ] UNSUPPORTED_FUNCTION (16) 
+  - [ ] TRANSIENT_ERROR (32) 
+  - [ ] COMMAND_FAILED (64) 
+  - [ ] CLIENT_FAILURE (128) 
+  - [ ] BAD_ID (256) 
 - [ ] ver ≠ 1
 - [ ] ask / btn
 - [ ] can (Cancellation URL)
@@ -51,20 +51,20 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 - [x] Optional additional name=value pair data
 - [ ] Alternate IDK
 - [ ] Rekeyed identities
-- - [ ] Rekey an existing identity
-- - [ ] Work with rekeyed identities in server communication (max 3 PIUKs)
+  - [ ] Rekey an existing identity
+  - [ ] Work with rekeyed identities in server communication (max 3 PIUKs)
 - [ ] Client secrets (SIN/INS/PINS)
 - [ ] Change password with old password
 - [ ] Change password with Rescue Code
 - [ ] Export Identity
-- - [x] Text
-- - [ ] QR Code
-- -  [ ] File
-- - - [ ] .sqrl
-- - - [ ] .sqrc
+  - [x] Text
+  - [ ] QR Code
+  -  [ ] File
+    - [ ] .sqrl
+    - [ ] .sqrc
 - Import Identity
-- - [x] Text
-- - [x] QR Code
-- - [x] File
-- - - [x] .sqrl
-- - - [x] .sqrc
+  - [x] Text
+  - [x] QR Code
+  - [x] File
+    - [x] .sqrl
+    - [x] .sqrc
