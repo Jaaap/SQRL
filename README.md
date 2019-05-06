@@ -23,3 +23,30 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 - Keep a list of sites where SQRL was used
 	- Click a link to open the site and log in to it
 	- Panic button which locks all known sites
+
+## SQRL feature status
+- [x] Client-Provided Sessions (CPS)
+- [ ] Alternate IDK
+- [x] Path extension (?x=1)
+- [ ] Rekeyed identities
+- - [ ] Rekey an existing identity
+- - [ ] Work with rekeyed identities in server communication (max 3 PIUKs)
+- [ ] Client secrets (SIN/INS/PINS)
+- [ ] cmd's
+- - [ ] disable
+- - [ ] enable (URS/SUK)
+- - [ ] remove (URS/SUK)
+- [ ] Change password with old password
+- [ ] Change password with Rescue Code
+- [ ] Export Identity
+- - [x] Text
+- - [ ] QR Code
+- -  [ ] File
+- - - [ ] .sqrl
+- - - [ ] .sqrc
+- Import Identity
+- - [x] Text
+- - [x] QR Code
+- - [x] File
+- - - [x] .sqrl
+- - - [x] .sqrc
