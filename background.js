@@ -143,7 +143,7 @@ function hasPassword()
 	return passwordEnscrypted != null;
 }
 
-async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB, tabId, isNewIdentity, sendResponseToContent)
+async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB, tabId, isNewIdentity, sendResponseToContent) //FIXME: remove isNewIdentity and sendResponseToContent???
 {
 /*
 	if (typeof href != "string" || !href.startsWith("sqrl://"))
