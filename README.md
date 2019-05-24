@@ -17,6 +17,8 @@ For **Firefox**, first create an xpi file with a command like `cd SQRL; zip -r S
 - [x] Move identity import to separate tab, not in popup
 - [x] Add identity import by QR code via webcam
 - [ ] Font-family on Firefox/Ubuntu is wrong
+- [ ] Make non-empty password mandatory
+- [ ] Firefox white empty popup fix
 
 ## Feature requests
 - Keep a list of sites where SQRL was used
