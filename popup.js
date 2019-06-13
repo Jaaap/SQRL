@@ -181,6 +181,14 @@ function setPopupState()
 		$('#tab3,#tab4,#tab5,#tab6').enable(result.hasIdentity);
 		$('#identityhash').text(result.hasIdentity && "textualIdentity" in result ? result.textualIdentity.substr(0, 4) : "");
 		$('form#export textarea[name="identity"]').val(result.hasIdentity && "textualIdentity" in result ? result.textualIdentity : "");
+		if (result.hasIdentity && "textualIdentity" in result)
+		{
+			let identity = parseTextualIdentity(result.textualIdentity);
+			let qrData = new Uint8Array(identity.length + 8);
+			qrData.set([115,113,114,108,100,97,116,97], 0);//'sqrldata'
+			qrData.set(identity, 8);//'sqrldata'
+			makeQR(document.querySelector('form#export img#exportqr'), qrData);
+		}
 		if ("partialTextualIdentity" in result && result.partialTextualIdentity != null && result.partialTextualIdentity != "")
 		{
 			let ta = document.querySelector('form#import textarea[name="identity"]');

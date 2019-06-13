@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css"/>
 <script src="bn.js" async></script>
 <script src="jQueryLight.js" defer></script>
+<script src="qrcode-make.js" defer></script>
 <script src="utils.js" defer></script>
 <script src="popup.js" defer></script>
 </head>
@@ -63,7 +64,8 @@ This can be the same password you use for this identity on other devices."><span
 		<input type="radio" name="tab" value="3" id="tab3"/><label for="tab3">Export Identity</label>
 		<div>
 			<form id="export">
-				<label><span>Identity</span><textarea name="identity" spellcheck="false" readonly></textarea></label><b></b><br/>
+				<label><span>Identity Text</span><textarea name="identity" spellcheck="false" readonly></textarea></label><br/>
+				<label><span>Identity QR</span><img id="exportqr"/></label><br/>
 			</form>
 		</div>
 	</div>

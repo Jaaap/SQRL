@@ -23,6 +23,23 @@ function ab2str(ab)
 {
 	return new TextDecoder("utf-8").decode(ab);
 }
+function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.MAX_SAFE_INTEGER or ab.length == 6
+{
+	if (ab.constructor !== Uint8Array)
+		throw new Error("First argument \"ab\" should be a Uint8Array");
+	if (ab.length > 6)
+		throw new Error("Max length of Uint8Array is 6");
+	let result = 0;
+	let fact = 1;
+	for (let i of ab)
+	{
+		result += fact * i;
+		fact *= 256;
+	}
+	fact = 0; //cleanup
+	return result;
+}
+
 
 async function validateTextualIdentity(ti, allowTrailingSpace)
 {
@@ -62,6 +79,30 @@ async function validateTextualIdentity(ti, allowTrailingSpace)
 	}
 	return { "success": true, "lineNr": lines.length };
 }
+function parseTextualIdentity(ti)
+{
+	let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
+	if ([73, 127, 159, 191, 223].indexOf(identityData.length) > -1)
+	{
+		//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
+		let blockSize = ab2int(identityData.slice(0, 2));
+		let blockType = ab2int(identityData.slice(2, 4));
+		if (blockType == 2)
+		{
+			if (blockSize == 73)
+			{
+				return identityData;
+			}
+			else
+				throw new Error('Argument 1 "ti" should start with a data block of length 73');
+		}
+		else
+			throw new Error('Argument 1 "ti" should start with a type2 data block');
+	}
+	else
+		throw new Error('base56decoded length of first argument "ti" should be 73, 127, 159, 191 or 223');
+}
+
 
 async function getVerificationChar(lineChars, lineIndex)
 {
@@ -150,4 +191,25 @@ function getBrowser()
 	if (!!document.documentMode && !!window.StyleMedia)
 		return "edge";
 	return "chrome";
+}
+function makeQR(img, data)
+{
+	let dotsize = 10;  // size of box drawn on canvas
+	let canvas = document.createElement('canvas');
+	let qrCanvasContext = canvas.getContext('2d');
+	let qr = qrcodegen.QrCode.encodeBinary(data, qrcodegen.QrCode.Ecc.LOW);
+
+	let width = qr.size * dotsize + 10;
+	canvas.setAttribute('height', width);
+	canvas.setAttribute('width', width);
+	qrCanvasContext.fillStyle = "#FFF";
+	qrCanvasContext.fillRect(0, 0, width, width);
+	for (let x = 0; x < qr.size; x++) {
+		for (let y = 0; y < qr.size; y++) {
+			qrCanvasContext.fillStyle = qr.getModule(x, y) ? "#000" : "#FFF";
+			qrCanvasContext.fillRect(x*dotsize + 5,y*dotsize + 5, dotsize, dotsize);   // x, y, w, h
+		}
+	}
+	img.src = canvas.toDataURL("image/png");
+	img.style.width = width/2 + "px";
 }

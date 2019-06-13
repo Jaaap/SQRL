@@ -22,23 +22,11 @@ function onIdentityfileChange(evt)
 					reader.onload = function(evt) {
 						let data = evt.target.result;//ArrayBuffer
 						let array = new Uint8Array(data);
-						//console.log(array);
-						if ([81, 135, 167, 199, 231, 206, 260, 292, 324, 356].indexOf(array.length) > -1)
-						{
-							if (ab2str(array.slice(0,8)) == "sqrldata")
-							{
-								//Ignore the first 8 (.sqrc) or 133 (.sqrl) bytes and convert the rest to base56
-								addVerificationAndWhitespaceToTextualIdentity(base56encode(array.slice(file.name.endsWith(".sqrc") ? 8 : 133).reverse())).then(ti => {
-									let ta = document.querySelector('form#import textarea[name="identity"]');
-									ta.value = ti;
-									//onTextualIdentityKeyUp({target:ta});
-								});
-							}
-							else
-								errorText = "Invalid .sqrl file selected. File should start with string 'sqrldata'.";
+						try {
+							binary2textual(array);
+						} catch (err) {
+							errorText = err;
 						}
-						else
-							errorText = "Invalid .sqrl file selected. Size of the file should be 81, 135, 167, 199, 231, 206, 260, 292, 324 or 356 bytes.";
 					};
 					reader.readAsArrayBuffer(file);
 				}
@@ -51,6 +39,27 @@ function onIdentityfileChange(evt)
 	}
 	input.setCustomValidity(errorText);
 	input.reportValidity();
+}
+function binary2textual(array)
+{
+	//console.log(array);
+	if ([81, 135, 167, 199, 231, 206, 260, 292, 324, 356].indexOf(array.length) > -1)
+	{
+		if (ab2str(array.slice(0,8)) == "sqrldata")
+		{
+			//Ignore the first 8 (.sqrc) or 133 (.sqrl) bytes and convert the rest to base56
+			let ignoreBytes = [206, 260, 292, 324, 356].indexOf(array.length) > -1 ? 133 : 8;
+			addVerificationAndWhitespaceToTextualIdentity(base56encode(array.slice(ignoreBytes).reverse())).then(ti => {
+				let ta = document.querySelector('form#import textarea[name="identity"]');
+				ta.value = ti;
+				//onTextualIdentityKeyUp({target:ta});
+			});
+		}
+		else
+			throw new Error("Invalid sqrl data. Data should start with string 'sqrldata'");
+	}
+	else
+		throw new Error("Invalid sqrl data. Size of the data should be 81, 135, 167, 199, 231, 206, 260, 292, 324 or 356 bytes");
 }
 
 function drawLine(canvas, begin, end, color)//FIXME: move to utils
@@ -94,13 +103,13 @@ function onQrscanClick(evt)
 		video.play();
 		requestAnimationFrame(tick);
 	}).catch(function(err){
-		let os = ("chrome" in window && "runtime" in chrome) ? chrome.runtime.getPlatformInfo().os : "mac"; //"mac", "win", "android", "cros", "linux", or "openbsd"
+		let os = "mac";//("chrome" in window && "runtime" in chrome) ? chrome.runtime.getPlatformInfo().os : "mac"; //"mac", "win", "android", "cros", "linux", or "openbsd"//FIXME
 		let browser = getBrowser(); //"firefox","edge","opera","chrome";
 //console.error(err, os, browser);
 		if (err.name == "NotFoundError")
 			alert("No Camera found.\nIf you do have a Camera, make sure the browser is allowed to use it.\n\n" + qrOsErrorText[os].NotFoundError);//FIXME: "System Preferences > Security & Privacy > Privacy > Camera > Firefox.app"
 		else if (err.name == "NotAllowedError")
-			alert("There is no permission to use the Camera.\n\n" + qrBrowserErrorText[browser].NotAllowedError);//FIXME: Chrome
+			alert("There is no permission to use the Camera.\n\n" + qrBrowserErrorText[browser].NotAllowedError);
 		else
 			alert("Error accessing Webcam for video:\n" + err.name + "\n\n" + err.message);
 	});
@@ -115,13 +124,14 @@ function onQrscanClick(evt)
 			canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
 			let imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
 			let code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-			if (code && code.data)
+			if (code && code.binaryData)
 			{
 				drawLine(canvas, code.loc.topLeftCorner, code.loc.topRightCorner, "#FF3B58");
 				drawLine(canvas, code.loc.topRightCorner, code.loc.bottomRightCorner, "#FF3B58");
 				drawLine(canvas, code.loc.bottomRightCorner, code.loc.bottomLeftCorner, "#FF3B58");
 				drawLine(canvas, code.loc.bottomLeftCorner, code.loc.topLeftCorner, "#FF3B58");
-				document.querySelector('form#import textarea[name="identity"]').value = code.data;
+				//document.querySelector('form#import textarea[name="identity"]').value = code.binaryData;
+				binary2textual(new Uint8Array(code.binaryData));
 				stopQrScan = true;
 			}
 		}

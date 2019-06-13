@@ -354,7 +354,7 @@ async function createIdentity()
 {
 	let newIUK = localSodium.randombytes_buf(32);
 	let enscryptSalt = localSodium.randombytes_buf(16);
-	let enscryptIter = 120;
+	let enscryptIter = 120;//Don't go over 255, see fixme below
 	let enscryptLogN = 9;
 	let newRescueCode = [];
 	let additionalData = new Uint8Array(25);
@@ -648,10 +648,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			else if (tabsResp != null && tabsResp.length)
 			{
 				let tabId = tabsResp[0].id;
-				let hasPendingRequest = tabId in getPostDataQueue;
-				let origRequest = getPostDataQueue[tabId];
-				let isSameOrigin = origRequest.linkUrl.origin === origRequest.windowLocUrl.origin;
-				sendResponse({"success": true, "hasPendingRequest": hasPendingRequest, "hasPassword": hasPassword(), "isSameOrigin": isSameOrigin, "linkOrigin": origRequest.linkUrl.origin});
+				if (tabId in getPostDataQueue)
+				{
+					let origRequest = getPostDataQueue[tabId];
+					let isSameOrigin = origRequest.linkUrl.origin === origRequest.windowLocUrl.origin;
+					sendResponse({"success": true, "hasPendingRequest": true, "hasPassword": hasPassword(), "isSameOrigin": isSameOrigin, "linkOrigin": origRequest.linkUrl.origin});
+				}
+				else
+					sendResponse({"success": true, "hasPendingRequest": false, "hasPassword": hasPassword()});
 			}
 		});
 		return true;
@@ -803,7 +807,6 @@ function str2ab(str) //WARNING: nameclash with the same method in utils.js //str
 {
 	return new TextEncoder("utf-8").encode(str);
 }
-*/
 function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.MAX_SAFE_INTEGER or ab.length == 6
 {
 	if (ab.constructor !== Uint8Array)
@@ -820,6 +823,7 @@ function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.M
 	fact = 0; //cleanup
 	return result;
 }
+*/
 //FIXME: REMOVE THIS UNUSED FUNCTION?
 function ab2hex(ab) //arraybuffer (Uint8Array) to hex
 {
@@ -973,33 +977,16 @@ async function validateTextualIdentity(ti)
 */
 function parseBlockType2(ti)
 {
-	let identityData = base56decode(ti.replace(/[\t ]/g,'').replace(/.(\r?\n|$)/g, "")).toArrayLike(Uint8Array).reverse();
-	if ([73, 127, 159, 191, 223].indexOf(identityData.length) > -1)
-	{
-		//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
-		let blockSize = ab2int(identityData.slice(0, 2));
-		let blockType = ab2int(identityData.slice(2, 4));
-		if (blockType == 2)
-		{
-			if (blockSize == 73)
-			{
-				let data = identityData.slice(0, blockSize);
-				return {
-					"enscryptSalt": data.slice(4, 20),
-					"enscryptLogN": ab2int(data.slice(20, 21)),
-					"enscryptIter": ab2int(data.slice(21, 25)),
-					"dataToDecrypt": data.slice(25, 73),
-					"additionalData": data.slice(0, 25)
-				};
-			}
-			else
-				throw new Error('Argument 1 "ti" should start with a data block of length 73');
-		}
-		else
-			throw new Error('Argument 1 "ti" should start with a type2 data block');
-	}
-	else
-		throw new Error('base56decoded length of first argument "ti" should be 73, 127, 159, 191 or 223');
+	let identityData = parseTextualIdentity(ti);
+	let blockSize = ab2int(identityData.slice(0, 2));
+	let data = identityData.slice(0, blockSize);
+	return {
+		"enscryptSalt": data.slice(4, 20),
+		"enscryptLogN": ab2int(data.slice(20, 21)),
+		"enscryptIter": ab2int(data.slice(21, 25)),
+		"dataToDecrypt": data.slice(25, 73),
+		"additionalData": data.slice(0, 25)
+	};
 }
 async function serializeBlock2(dataToDecrypt, additionalData)
 {
