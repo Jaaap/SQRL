@@ -22,7 +22,7 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [x] Add identity import by QR code via webcam
 - [ ] Font-family on Firefox/Ubuntu is wrong
 - [ ] Make non-empty password mandatory
-- [ ] Firefox white empty popup fix
+- [x] Firefox white empty popup: https://bugzilla.mozilla.org/show_bug.cgi?id=1416505
 
 ## Feature requests
 - Keep a list of sites where SQRL was used
@@ -64,13 +64,15 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [x] Show domain name on cross-origin authentications
 - [ ] Export Identity
   - [x] Text
-  - [ ] QR Code
+  - [x] QR Code (with Rescue Code)
+  - [ ] QR Code (with Password)
   - [ ] File
     - [ ] .sqrl
     - [ ] .sqrc
 - [x] Import Identity
   - [x] Text
-  - [x] QR Code
+  - [x] QR Code (with Rescue Code)
+  - [ ] QR Code (with Password)
   - [x] File
     - [x] .sqrl
     - [x] .sqrc
