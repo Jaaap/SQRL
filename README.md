@@ -23,6 +23,7 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [ ] Font-family on Firefox/Ubuntu is wrong
 - [ ] Make non-empty password mandatory
 - [x] Firefox white empty popup: https://bugzilla.mozilla.org/show_bug.cgi?id=1416505
+- [ ] Explain import needs Rescue Code, cannot import with Password
 
 ## Feature requests
 - Keep a list of sites where SQRL was used
