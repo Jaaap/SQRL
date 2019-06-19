@@ -24,8 +24,12 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [ ] Make non-empty password mandatory
 - [x] Firefox white empty popup: https://bugzilla.mozilla.org/show_bug.cgi?id=1416505
 - [ ] Explain import needs Rescue Code, cannot import with Password
+- [ ] Explain Settings > Password > Remember
+- [ ] Automatic formatting for textual identity input
 
 ## Feature requests
+- Change name of identity
+- Automatic formatting (add and remove whitespace) for textual identity input
 - Keep a list of sites where SQRL was used
 	- Click a link to open the site and log in to it
 	- Panic button which locks all known sites
@@ -41,15 +45,16 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
   - [ ] hardlock
   - [ ] suk
 - [ ] tif's
-  - [x] ID_MATCH (1) 
-  - [ ] PREV_ID_MATCH (2) 
-  - [ ] IP_MATCH (4) 
-  - [ ] SQRL_DISABLED (8) 
-  - [ ] UNSUPPORTED_FUNCTION (16) 
-  - [ ] TRANSIENT_ERROR (32) 
-  - [ ] COMMAND_FAILED (64) 
-  - [ ] CLIENT_FAILURE (128) 
-  - [ ] BAD_ID (256) 
+  - [x] ID_MATCH (1)
+  - [ ] PREV_ID_MATCH (2)
+  - [ ] IP_MATCH (4)
+  - [ ] SQRL_DISABLED (8)
+  - [ ] UNSUPPORTED_FUNCTION (16)
+  - [ ] TRANSIENT_ERROR (32)
+  - [ ] COMMAND_FAILED (64)
+  - [ ] CLIENT_FAILURE (128)
+  - [ ] BAD_ID (256)
+- [ ] QuickPass
 - [ ] ver ≠ 1
 - [ ] ask / btn
 - [ ] can (Cancellation URL)
