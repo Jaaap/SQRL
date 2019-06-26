@@ -141,7 +141,9 @@ function onSettingsFormSubmit(evt)
 {
 	evt.preventDefault();
 	let elems = this.elements;
-	chrome.runtime.sendMessage({'action': 'savePassword', 'savepwd': elems.savepwd.checked }, resp => {});
+	chrome.runtime.sendMessage({'action': 'savePassword', 'savepwd': elems.savepwd.checked }, resp => {
+		$('form#settings button').addClass("success");
+	});
 }
 function onPasswdFormSubmit(evt)
 {

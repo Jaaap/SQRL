@@ -41,6 +41,11 @@ function setSavepwd(newSavepwd)
 {
 //console.log("setSavepwd", newSavepwd);
 	savepwd = newSavepwd;
+	if (!newSavepwd)//clear passwd from memory
+	{
+		memzero(passwordEnscrypted);
+		passwordEnscrypted = null;
+	}
 	chrome.storage.local.set({"savepwd": newSavepwd}, () => {
 		if (chrome.runtime.lastError)
 			console.warn("chrome.storage.local.set", chrome.runtime.lastError);
