@@ -3,7 +3,7 @@
 html,body { display: flex; margin: 0; flex-direction: column; }
 body,label,input { font-size: 17px; }
 /* Fx mac: 784w x 584h */
-body { font-family: Verdana, Helvetica; width: 680px; height: 584px; }
+body { font-family: Verdana, Helvetica, Arial, Sans-serif; width: 680px; height: 584px; }
 main>form { display: none; line-height: 26px; }
 body.passwdOnly { height: 150px; }
 body.passwdOnly>main>div { display: none; }

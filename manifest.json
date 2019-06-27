@@ -3,7 +3,7 @@
 	"description": "__MSG_description__",
 	"default_locale": "en",
 	"manifest_version": 2,
-	"version": "0.0.42",
+	"version": "0.0.44",
 	"homepage_url": "https://github.com/Jaaap/SQRL",
 	"applications": {
 		"gecko": {
@@ -34,5 +34,12 @@
 	},
 	"background": {
 		"scripts": ["bn.js","utils.js","background.js","sodium-asmjs.js"]
+	},
+	"commands":{
+		"_execute_browser_action": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+L"
+			}
+		}
 	}
 }

@@ -36,6 +36,7 @@ function onAnchorClick(evt)
 			var shaft2 = document.createElement("hr");
 			var tip = document.createElement("span");
 			arrow.style.cssText = `
+all: initial;
 position: absolute;
 z-index: 99999;
 left: ${x1 + document.documentElement.scrollLeft}px;
