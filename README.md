@@ -20,7 +20,7 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [x] Add user confirmation of cross-origin authentications, show domain
 - [x] Move identity import to separate tab, not in popup
 - [x] Add identity import by QR code via webcam
-- [ ] Font-family on Firefox/Ubuntu is wrong
+- [x] Font-family on Firefox/Ubuntu is wrong
 - [ ] Make non-empty password mandatory
 - [x] Firefox white empty popup: https://bugzilla.mozilla.org/show_bug.cgi?id=1416505
 - [ ] Explain import needs Rescue Code, cannot import with Password
