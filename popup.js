@@ -234,6 +234,10 @@ function init()
 							}
 						});
 					}
+					else
+					{
+						document.querySelector('form#passwd input[name="password"]').focus();
+					}
 				}
 			}
 		});

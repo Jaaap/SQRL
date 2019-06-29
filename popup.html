@@ -13,7 +13,9 @@
 </head>
 <body>
 <main>
-<h1><img src="icons/256.png"/>SQRL<span id="identityhash" title="This is the name of the active identity"></span></h1>
+<h1><img src="icons/256.png"/>SQRL<span title="This is the name of the active identity.
+It's the first 4 characters of the textual identity.
+You cannot change this.">identity:</span><span id="identityhash"></span></h1>
 <form id="passwd">
 	Login to <code>-</code>?<br/>
 	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label>
@@ -101,7 +103,7 @@ This can be the same password you use for this identity on other devices."><span
 		<input type="radio" name="tab" value="7" id="tab7"/><label for="tab7">Settings</label>
 		<div>
 			<form id="settings">
-				<label><span>Password</span><input type="checkbox" name="savepwd"/> Remember</label><br/>
+				<label><span title="If this box is checked and you enter your SQRL password to authenticate on a website, the password will be stored in memory and used for subsequent SQRL authentications.">Password</span><input type="checkbox" name="savepwd"/> Remember</label><br/>
 				<label><span></span><button>Save</button></label>
 			</form>
 		</div>
@@ -113,7 +115,7 @@ This can be the same password you use for this identity on other devices."><span
 			<label><span title="Keyboard shortcut to open this popup (use Command in stead of Control on Mac platform)">Keybd shortcut</span>Ctrl-Shift-L / ⌘-Shift-L</label><br/>
 			<label><span>SQRL Forum</span><a href="https://sqrl.grc.com" target="_blank">sqrl.grc.com</a></label><br/>
 			<br/>
-			<label><span>Abbreviations</span><dl><dt>Auth</dt><dd>Authentication requested</dd>
+			<label><span title="These abbreviations will appear as badge text on the WebExtension's button in the top tight of your browser window.">Abbreviations</span><dl><dt>Auth</dt><dd>Authentication requested</dd>
 <dt>IDTY</dt><dd>Missing Identity</dd>
 <dt>PASS</dt><dd>Password required</dd>
 </dl></label><br/>
