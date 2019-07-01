@@ -1,6 +1,6 @@
 {
 "use strict";
-let localSodium = null, textualIdentity = null, partialTextualIdentity = null, getPostDataQueue = {}, importIdentityTabId;
+let localSodium = null, textualIdentity = null, partialTextualIdentity = null, pendingRequest = null, importIdentityTabId;
 
 let sodiumPromise = new Promise((resolve, reject) => {
 	window.sodium = { onload: sod => {
@@ -148,7 +148,7 @@ function hasPassword()
 	return passwordEnscrypted != null;
 }
 
-async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB, tabId, isNewIdentity, sendResponseToContent) //FIXME: remove isNewIdentity and sendResponseToContent???
+async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 {
 /*
 	if (typeof href != "string" || !href.startsWith("sqrl://"))
@@ -185,7 +185,7 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB,
 
 	await sodiumPromise;
 	let currIMK = await getIMK(passwdFromPopupAB);
-	delete getPostDataQueue[tabId];
+	//pendingRequest = null;
 	let hostnameExtended = linkUrl.hostname;
 	if (linkUrl.search.length > 1)//starts with '?'
 	{
@@ -506,7 +506,7 @@ function bitIsSet(n, mask)
 	return n & mask === mask;
 }
 
-function addRequestToPostDataQueue(href, prevServerResp, windowLoc, isNewIdentity, tabId, sendResponseToContent)
+function setPendingRequest(href, prevServerResp, windowLoc, tabId, sendResponseToContent)
 {
 	if (typeof href != "string" || !href.startsWith("sqrl://"))
 		throw new Error('ERRAR001', 'Argument "href" should be a string starting with "sqrl://"');
@@ -542,7 +542,7 @@ function addRequestToPostDataQueue(href, prevServerResp, windowLoc, isNewIdentit
 			}
 			else //success
 			{
-				getPostDataQueue["" + tabId] = {"linkUrl": linkUrl, "prevServerResp": prevServerResp, "windowLocUrl": windowLocUrl, "isNewIdentity": isNewIdentity, "sendResponseToContent": sendResponseToContent};
+				pendingRequest = {"tabId": tabId, "linkUrl": linkUrl, "prevServerResp": prevServerResp, "windowLocUrl": windowLocUrl, "sendResponseToContent": sendResponseToContent};
 				showBadgeError("Auth", 6, tabId);
 				return true;
 			}
@@ -553,6 +553,15 @@ function addRequestToPostDataQueue(href, prevServerResp, windowLoc, isNewIdentit
 
 /*** end ***/
 
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+	if (pendingRequest != null && pendingRequest.tabId == tabId && changeInfo.status != "complete")//sqrl: link may be clicked before "complete"
+	{
+		console.log("Removing pendingRequest because chrome.tabs.onUpdated", tabId);
+		pendingRequest = null;
+		showBadgeError("", 0, tabId);
+	}
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 //console.log("background onMessage", "savepwd", savepwd, "passwordEnscrypted", passwordEnscrypted);
 	/* from content.js */
@@ -561,7 +570,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		if (sender != null && "tab" in sender && sender.tab.id != null)
 		{
 			try {
-				let isAsync = addRequestToPostDataQueue(request.href, base64url_encode(request.href), request.windowLoc, false, sender.tab.id, sendResponse);
+				let isAsync = setPendingRequest(request.href, base64url_encode(request.href), request.windowLoc, sender.tab.id, sendResponse);
 				if (isAsync)
 				{
 					return true;
@@ -585,27 +594,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			if (tabsResp != null && tabsResp.length)
 			{
 				let tabId = tabsResp[0].id;
-				if (tabId in getPostDataQueue)
+				if (pendingRequest != null && pendingRequest.tabId == tabId)
 				{
-					try {
+					try
+					{
 						showBadgeError("", 0, tabId);
-						let origRequest = getPostDataQueue[tabId];
-						if (tabsResp[0].url === origRequest.windowLocUrl.href)
+						if (tabsResp[0].url === pendingRequest.windowLocUrl.href)
 						{
 							let passwdAB = request.password == null ? null : str2ab(request.password); //is memzero'd by getPostDataAsync
 							//setSavepwd(request.savepwd);
-							doServerRequest(origRequest.linkUrl, origRequest.prevServerResp, origRequest.windowLocUrl, passwdAB, tabId, origRequest.isNewIdentity, origRequest.sendResponseToContent).then(data => {
+							doServerRequest(pendingRequest.linkUrl, pendingRequest.prevServerResp, pendingRequest.windowLocUrl, passwdAB).then(data => {
 								if (data && data.success)
 								{
-									origRequest.sendResponseToContent({"success": true, "url": data.url}); //to content
+									pendingRequest.sendResponseToContent({"success": true, "url": data.url}); //to content
 									sendResponse({"success": true, "hasOpenRequest": true}); // to popup
 								}
 								else
 								{
 									console.warn("background.requestAction", "ERRRA003");//, err.message, err.fileName);
-									origRequest.sendResponseToContent({"success": false, "errorCode": "ERRRA003"}); //to content
+									pendingRequest.sendResponseToContent({"success": false, "errorCode": "ERRRA003"}); //to content
 									sendResponse({"success": false, "errorCode": "ERRRA003"}); // to popup
 								}
+								pendingRequest = null;
 							}).catch(err => {
 								console.warn("background.requestAction", "ERRRA004", err.message, err.fileName);//FIXME; remove err info
 								if (err.message == "ERRPD010")		{ showBadgeError("PASS", 6, tabId); }
@@ -614,18 +624,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 								else if (err.message == "ERRGI003")	{ sendResponse({"success": false, "errorCode": err.message}); } //to popup, wrong password
 								else
 								{
-									origRequest.sendResponseToContent({"success": false, "errorCode": err.message}); //to content
+									pendingRequest.sendResponseToContent({"success": false, "errorCode": err.message}); //to content
 									sendResponse({"success": false, "errorCode": err.message}); // to popup
 								}
 							});
 						}
 						else
 						{
-							delete getPostDataQueue[tabId];
+							pendingRequest = null;
 							//console.log("background.requestAction", "ERRRA003", "tab's location url has changed");
 							sendResponse({"success": true, "hasOpenRequest": false});
 						}
-					} catch (err) {
+					}
+					catch (err)
+					{
+						pendingRequest = null;
 						console.warn("background.requestAction", "ERRRA005", err.message);//FIXME: remove message
 						sendResponse({"success": false, "errorCode": "ERRRA005"});
 					}
@@ -653,11 +666,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			else if (tabsResp != null && tabsResp.length)
 			{
 				let tabId = tabsResp[0].id;
-				if (tabId in getPostDataQueue)
+				if (pendingRequest != null && pendingRequest.tabId == tabId)
 				{
-					let origRequest = getPostDataQueue[tabId];
-					let isSameOrigin = origRequest.linkUrl.origin === origRequest.windowLocUrl.origin;
-					sendResponse({"success": true, "hasPendingRequest": true, "hasPassword": hasPassword(), "isSameOrigin": isSameOrigin, "linkOrigin": origRequest.linkUrl.origin});
+					let isSameOrigin = pendingRequest.linkUrl.origin === pendingRequest.windowLocUrl.origin;
+					sendResponse({"success": true, "hasPendingRequest": true, "hasPassword": hasPassword(), "isSameOrigin": isSameOrigin, "linkOrigin": pendingRequest.linkUrl.origin});
 				}
 				else
 					sendResponse({"success": true, "hasPendingRequest": false, "hasPassword": hasPassword()});
