@@ -232,11 +232,20 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 		"credentials": "omit", // include, *omit, same-origin
 	}).catch(err => {
 		memzero(SitePrivateKey);
-		throw new Error("ERRFE000", "Response not defined");
+		throw new Error("ERRFE000", "Error in request1 to server");
 	});
 	if (resp1 && resp1.ok) //statusCode == 200
 	{
-		let responseText1 = await resp1.text();
+		let responseText1;
+		try
+		{
+			responseText1 = await resp1.text();
+		}
+		catch (e)
+		{
+			memzero(SitePrivateKey);
+			throw new Error("ERRFE010", "Error reading response from request1");
+		}
 		let responseMap1 = getResponseAsMap(responseText1);
 		if ("tif" in responseMap1)
 		{
@@ -268,11 +277,20 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 					"redirect": "error", // *manual, follow, error
 					"credentials": "omit", // include, *omit, same-origin
 				}).catch(err => {
-					throw new Error("ERRFE001", "Response2 not defined");
+					throw new Error("ERRFE001", "Error in request2 to server");
 				});
 				if (resp2 && resp2.ok) //statusCode == 200
 				{
-					let responseText2 = await resp2.text();
+					let responseText2;
+					try
+					{
+						responseText2 = await resp2.text();
+					}
+					catch (e)
+					{
+						memzero(SitePrivateKey);
+						throw new Error("ERRFE011", "Error reading response from request2");
+					}
 					let responseMap2 = getResponseAsMap(responseText2);
 					if ("tif" in responseMap2)
 					{

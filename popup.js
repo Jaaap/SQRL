@@ -148,9 +148,12 @@ function onSettingsFormSubmit(evt)
 function onPasswdFormSubmit(evt)
 {
 	evt.preventDefault();
+	let btn = this.querySelector('button');
+	btn.classList.add("wait");
 	let elems = this.elements;
 	chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": document.querySelector('form#passwd>label.pwd').classList.contains("hasPassword") == "none" ? null : elems.password.value}, resp => {
 		//console.log("popup.onPasswdFormSubmit", "sendPostDataToActiveTab", JSON.stringify(resp));
+		btn.classList.remove("wait");
 		if (resp == null)
 			showGenericError("onPasswdFormSubmit", "ERRPFS--1", "Problem communicating with background");
 		else
