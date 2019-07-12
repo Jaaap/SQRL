@@ -33,7 +33,7 @@ function onInputInput(evt)
 function onTextualIdentityKeyUp(evt)
 {
 	let ta = evt.target;
-	validateTextualIdentity(ta.value, true).then(validationData => {
+	validateTextualIdentity(ta.value).then(validationData => {
 		$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
 		$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
 		chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value}, result => {
@@ -89,6 +89,8 @@ function onCreateFormSubmit(evt)
 function onImportFormSubmit(evt)
 {
 	evt.preventDefault();
+	let btn = this.querySelector('button:not([type])');
+	btn.classList.add("wait");
 	let elems = this.elements;
 	if (elems.verifypassword.value === elems.password.value)
 	{
@@ -97,6 +99,7 @@ function onImportFormSubmit(evt)
 		chrome.runtime.sendMessage({'action': 'importIdentity', "textualIdentity": elems.identity.value, "rescueCode": elems.rescuecode.value, "password": elems.password.value, "print": false}, result => {
 			//console.log("onImportFormSubmit", result);
 			elems[elems.length - 1].parentNode.className = result.success ? "success" : "failure";
+			btn.classList.remove("wait");
 			if (result.success)
 			{
 				elems.identity.value = "";

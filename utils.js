@@ -41,11 +41,10 @@ function ab2int(ab) //arraybuffer (Uint8Array) to int. Only works up to Number.M
 }
 
 
-async function validateTextualIdentity(ti, allowTrailingSpace)
+async function validateTextualIdentity(ti)
 {
+	ti = ti.replace(/[\s\xA0]+$/, '');//trim trailing whitespace
 	let lines = ti.split(/\r?\n/);
-	if (!allowTrailingSpace && /\s+$/.test(ti))
-		return { "success": false, "lineNr": lines.length - 1, "message": `Trailing whitespace on last line.\nRemove any trailing spaces or tabs` };
 	let base56invalidsCharsRe = new RegExp(`([^${base56chars}])`);
 	for (let [lIndex, line] of lines.entries())
 	{
@@ -77,7 +76,7 @@ async function validateTextualIdentity(ti, allowTrailingSpace)
 				return { "success": false, "lineNr": lIndex, "message": `Verification character mismatch on line ${lIndex + 1}.\nOne or more of the characters on this line is wrong.` };
 		}
 	}
-	return { "success": true, "lineNr": lines.length };
+	return { "success": true, "lineNr": lines.length, "trimmedTextualInput": ti };
 }
 function parseTextualIdentity(ti)
 {
