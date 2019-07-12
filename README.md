@@ -24,7 +24,7 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [ ] Make non-empty password mandatory
 - [x] Firefox white empty popup: https://bugzilla.mozilla.org/show_bug.cgi?id=1416505
 - [ ] Explain import needs Rescue Code, cannot import with Password
-- [ ] Explain Settings > Password > Remember
+- [x] Explain Settings > Password > Remember
 - [ ] Automatic formatting for textual identity input
 
 ## Feature requests
