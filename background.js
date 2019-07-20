@@ -148,7 +148,7 @@ function hasPassword()
 	return passwordEnscrypted != null;
 }
 
-async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
+async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB, debugOptions)
 {
 /*
 	if (typeof href != "string" || !href.startsWith("sqrl://"))
@@ -202,6 +202,7 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 	let { publicKey: SitePublicKey, privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
 	memzero(HMAC256Hash);
 
+
 	let clientData = [
 		"cmd=query",
 		"ver=1",
@@ -209,15 +210,69 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 		"opt=cps" //"opt=suk"
 		//FIXME: add "ins" when server requests it via sin=i
 	];
+
+
+/*
+debugOptions:
+
+DEBUG_invalid_private_key
+DEBUG_server_trailing_whitespace
+DEBUG_server_trailing_chars
+DEBUG_server_cut_off_1
+DEBUG_client_trailing_whitespace
+DEBUG_client_unknown_extra_param
+DEBUG_client_unknown_cmd
+DEBUG_client_unknown_ver
+DEBUG_different_idk
+DEBUG_same_server
+*/
+
+	if (debugOptions.includes("DEBUG_invalid_private_key"))
+	{
+		SitePrivateKey[0]++;
+	}
+	if (debugOptions.includes("DEBUG_server_trailing_whitespace"))
+	{
+		server += " ";
+	}
+	if (debugOptions.includes("DEBUG_server_trailing_chars"))
+	{
+		server += "ææ";
+	}
+	if (debugOptions.includes("DEBUG_server_cut_off_1"))
+	{
+		server = server.slice(0, -1);
+	}
+	if (debugOptions.includes("DEBUG_client_trailing_whitespace"))
+	{
+		clientData.push("");
+	}
+	if (debugOptions.includes("DEBUG_client_unknown_extra_param"))
+	{
+		clientData.push("foo=bar");
+	}
+	if (debugOptions.includes("DEBUG_client_unknown_cmd"))
+	{
+		clientData[0] = "cmd=foo";
+	}
+	if (debugOptions.includes("DEBUG_client_unknown_ver"))
+	{
+		clientData[1] = "ver=666";
+	}
+
+
+
+
+
 	clientData.push(""); //keep this empty string for trailing \r\n
 	let client = base64url_encode(clientData.join("\r\n"));
 	memzero(SitePublicKey);
 
 	let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
 	//memzero(SitePrivateKey);
-//console.log("doServerRequest", "client", clientData);
-//console.log("doServerRequest", "server", server);
-//console.log("doServerRequest", "ids", ids);
+console.log("doServerRequest", "client", clientData);
+console.log("doServerRequest", "server", server);
+console.log("doServerRequest", "ids", ids);
 
 
 // STEP 1: do q cmd=query
@@ -251,6 +306,19 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 		{
 			if ("qry" in responseMap1)
 			{
+
+
+
+				//DEBUG
+				if (debugOptions.includes("DEBUG_different_idk"))
+				{
+					clientData[2] = "Zm9v";//foo base64 encoded
+				}
+
+
+
+
+
 				clientData[0] = "cmd=ident";
 				clientData.pop(); //remove empty string previously pushed
 				if (!bitIsSet(Number.parseInt(responseMap1.tif, 16), ID_MATCH))
@@ -268,6 +336,18 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 
 				ids = localSodium.crypto_sign_detached(client + responseText1, SitePrivateKey, 'base64');
 				memzero(SitePrivateKey);
+
+
+
+
+				//DEBUG
+				if (debugOptions.includes("DEBUG_same_server"))
+				{
+					responseText1 = server;
+				}
+
+
+
 				let resp2 = await fetch(linkUrl.origin + responseMap1.qry, {
 					"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(responseText1), "ids=" + encodeURIComponent(ids)].join('&'),
 					"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -340,7 +420,7 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 function getResponseAsMap(responseText)
 {
 	let responseLines = base64url_decode(responseText).split("\r\n");
-//console.log("getResponseAsMap", "server response", JSON.stringify(responseLines));
+console.log("getResponseAsMap", "server response", JSON.stringify(responseLines));
 	let responseMap = {};
 	for (let line of responseLines)
 	{
@@ -622,7 +702,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 						{
 							let passwdAB = request.password == null ? null : str2ab(request.password); //is memzero'd by getPostDataAsync
 							//setSavepwd(request.savepwd);
-							doServerRequest(pendingRequest.linkUrl, pendingRequest.prevServerResp, pendingRequest.windowLocUrl, passwdAB).then(data => {
+							doServerRequest(pendingRequest.linkUrl, pendingRequest.prevServerResp, pendingRequest.windowLocUrl, passwdAB, request.debugOptions).then(data => {
 								if (data && data.success)
 								{
 									pendingRequest.sendResponseToContent({"success": true, "url": data.url}); //to content

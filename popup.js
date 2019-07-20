@@ -154,7 +154,20 @@ function onPasswdFormSubmit(evt)
 	let btn = this.querySelector('button');
 	btn.classList.add("wait");
 	let elems = this.elements;
-	chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": document.querySelector('form#passwd>label.pwd').classList.contains("hasPassword") == "none" ? null : elems.password.value}, resp => {
+/*
+DEBUG_invalid_private_key
+DEBUG_server_trailing_whitespace
+DEBUG_server_trailing_chars
+DEBUG_server_cut_off_1
+DEBUG_client_trailing_whitespace
+DEBUG_client_unknown_extra_param
+DEBUG_client_unknown_cmd
+DEBUG_client_unknown_ver
+DEBUG_different_idk
+DEBUG_same_server
+*/
+	let debugOptions = [].filter.call(this.elements, cb => cb.tagName == "INPUT" && cb.type == "checkbox" && cb.checked).map(cb => cb.name);
+	chrome.runtime.sendMessage({"action": "sendPostDataToActiveTab", "password": document.querySelector('form#passwd>label.pwd').classList.contains("hasPassword") == "none" ? null : elems.password.value, "debugOptions": debugOptions}, resp => {
 		//console.log("popup.onPasswdFormSubmit", "sendPostDataToActiveTab", JSON.stringify(resp));
 		btn.classList.remove("wait");
 		if (resp == null)

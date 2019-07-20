@@ -19,6 +19,19 @@ You cannot change this.">identity:</span><span id="identityhash"></span></h1>
 <form id="passwd">
 	Login to <code>-</code>?<br/>
 	<label class="pwd"><span>Password</span><input type="password" name="password" autofocus/></label>
+	<!-- DEBUG -->
+	<br/>
+	<label><input type="checkbox" name="DEBUG_invalid_private_key"/>ids signed with invalid private key</label><br/>
+	<label><input type="checkbox" name="DEBUG_server_trailing_whitespace"/>server= contains trailing whitespace (after base64 encoding)</label><br/>
+	<label><input type="checkbox" name="DEBUG_server_trailing_chars"/>server= contains trailing characters (after base64 encoding)</label><br/>
+	<label><input type="checkbox" name="DEBUG_server_cut_off_1"/>server= cut off 1 character at end</label><br/>
+	<label><input type="checkbox" name="DEBUG_client_trailing_whitespace"/>client= contains trailing whitespace</label><br/>
+	<label><input type="checkbox" name="DEBUG_client_unknown_extra_param"/>client= contains unknown extra parameter</label><br/>
+	<label><input type="checkbox" name="DEBUG_client_unknown_cmd"/>client= has unknown cmd=</label><br/>
+	<label><input type="checkbox" name="DEBUG_client_unknown_ver"/>client= has unknown ver=</label><br/>
+	<label><input type="checkbox" name="DEBUG_different_idk"/>cmd=ident with different idk from preceding cmd=query call</label><br/>
+	<label><input type="checkbox" name="DEBUG_same_server"/>cmd=ident with server= from preceding cmd=query call</label><br/>
+	<!-- END DEBUG -->
 	<button>Login</button>
 </form>
 <div>

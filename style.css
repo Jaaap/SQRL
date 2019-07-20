@@ -5,7 +5,7 @@ body,label,input { font-size: 17px; }
 /* Fx mac: 784w x 584h */
 body { font-family: Verdana, Helvetica, Arial, Sans-serif; width: 680px; height: 584px; }
 main>form { display: none; line-height: 26px; }
-body.passwdOnly { height: 150px; }
+body.passwdOnly { height: 450px; }
 body.passwdOnly>main>div { display: none; }
 body.passwdOnly>main>form { display: block; }
 button {
