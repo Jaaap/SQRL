@@ -35,16 +35,16 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 	- Panic button which locks all known sites
 
 ## SQRL feature status
-- [ ] cmd's
+- [ ] cmd
   - [ ] disable
   - [ ] enable (URS/SUK)
   - [ ] remove (URS/SUK)
-- [ ] opt's
+- [ ] opt
   - [x] Client-Provided Sessions (CPS)
   - [ ] sqrlonly
   - [ ] hardlock
   - [ ] suk
-- [ ] tif's
+- [ ] tif
   - [x] ID_MATCH (1)
   - [ ] PREV_ID_MATCH (2)
   - [x] IP_MATCH (4)
