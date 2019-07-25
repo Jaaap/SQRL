@@ -253,7 +253,12 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 			{
 				clientData[0] = "cmd=ident";
 				clientData.pop(); //remove empty string previously pushed
-				if (!bitIsSet(Number.parseInt(responseMap1.tif, 16), ID_MATCH))
+				let tif1 = Number.parseInt(responseMap1.tif, 16);
+				if (!bitIsSet(tif1, IP_MATCH))
+				{
+					throw new Error("ERRFE012", "IP MISMATCH on 1st call");
+				}
+				if (!bitIsSet(tif1, ID_MATCH))
 				{
 					let currILK = await getILK(passwdFromPopupAB);
 					let [SUK, VUK] = getSukVuk(currILK);
@@ -295,11 +300,16 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 					if ("tif" in responseMap2)
 					{
 						//0x01	(Current) ID match: When set, this bit indicates that the web server has found an identity association for the user based upon the default (current) identity credentials supplied by the client: the IDentity Key (idk) and the IDentity Signature (ids).
+						let tif2 = Number.parseInt(responseMap2.tif, 16);
+						if (!bitIsSet(tif2, IP_MATCH))
+						{
+							throw new Error("ERRFE012", "IP MISMATCH on 2nd call");
+						}
 						if ("url" in responseMap2)
 						{
 							return {"success": true, "url": responseMap2.url};
 						}
-						else if (!bitIsSet(Number.parseInt(responseMap2.tif, 16), ID_MATCH))
+						else if (!bitIsSet(tif2, ID_MATCH))
 						{
 							throw new Error("ERRFE003", "No IDMATCH in responseMap2");
 						}
@@ -641,6 +651,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 								else if (err.message == "ERRPD009")	{ showBadgeError("IDTY", 6, tabId); }
 								//else if (err.message == "ERRPD008")	{ showBadgeError("COA", 0, tabId); }
 								else if (err.message == "ERRGI003")	{ sendResponse({"success": false, "errorCode": err.message}); } //to popup, wrong password
+								else if (err.message == "ERRFE012")	{ sendResponse({"success": false, "errorCode": err.message}); } //to popup, IP MISMATCH
 								else
 								{
 									pendingRequest.sendResponseToContent({"success": false, "errorCode": err.message}); //to content

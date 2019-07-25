@@ -172,6 +172,8 @@ function onPasswdFormSubmit(evt)
 			{
 				if (resp.errorCode == "ERRGI003")//"ERRPD008")
 					showPasswordError(elems.password);
+				else if (resp.errorCode == "ERRFE012")
+					showGenericError("IP MISMATCH", "", "The SQRL server reported that the IP address of the website visitor was different from the IP address of the SQRL client.\nThis may indicate a Man-In-The-Middle (MITM) interception attack.");
 				else
 					showGenericError("onPasswdFormSubmit", "ERRPFS--2", "Unknown error code " + resp.errorCode);
 			}
