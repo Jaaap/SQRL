@@ -47,7 +47,7 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [ ] tif's
   - [x] ID_MATCH (1)
   - [ ] PREV_ID_MATCH (2)
-  - [ ] IP_MATCH (4)
+  - [x] IP_MATCH (4)
   - [ ] SQRL_DISABLED (8)
   - [ ] UNSUPPORTED_FUNCTION (16)
   - [ ] TRANSIENT_ERROR (32)
