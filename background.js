@@ -532,7 +532,7 @@ function bitIsSet(n, mask)
 {
 	if (typeof n != "number")
 		throw "First argument 'n' must be a number";
-	return n & mask === mask;
+	return (n & mask) === mask;
 }
 
 function setPendingRequest(href, prevServerResp, windowLoc, tabId, sendResponseToContent)
