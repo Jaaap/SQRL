@@ -249,7 +249,7 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 		let responseMap1 = getResponseAsMap(responseText1);
 		if ("tif" in responseMap1)
 		{
-			if ("qry" in responseMap1)
+			if ("qry" in responseMap1 && isValidURLPath(responseMap1.qry))
 			{
 				clientData[0] = "cmd=ident";
 				clientData.pop(); //remove empty string previously pushed
@@ -365,21 +365,15 @@ function getResponseAsMap(responseText)
 
 function getSukVuk(ILK)//ILK IS MEMZERO'D by this function
 {
-	let randomLock = localSodium.randombytes_buf(32);
-	let SUK = localSodium.crypto_scalarmult_base(randomLock);
-	let bytesToSign = localSodium.crypto_scalarmult(randomLock, ILK);
-//console.log("getSukVuk", "randomLock", ab2hex(randomLock));
-	memzero(randomLock);
+	let RLK = localSodium.randombytes_buf(32);
+	let SUK = localSodium.crypto_scalarmult_base(RLK);
+	let bytesToSign = localSodium.crypto_scalarmult(RLK, ILK);
+//console.log("getSukVuk", "RLK", ab2hex(RLK));
+	memzero(RLK);
 	memzero(ILK);
 	let vukKeypair = localSodium.crypto_sign_seed_keypair(bytesToSign);
 	let VUK = vukKeypair.publicKey; //ignore privateKey
 	memzero(vukKeypair.privateKey);
-/*
-	let VUK64 = localSodium.crypto_sign_seed_keypair(bytesToSign).privateKey; //ignore publicKey
-	memzero(bytesToSign);
-	let VUK = VUK64.slice(0,32);
-	memzero(VUK64);
-*/
 	return [SUK, VUK];
 }
 

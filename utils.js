@@ -212,3 +212,13 @@ function makeQR(img, data)
 	img.src = canvas.toDataURL("image/png");
 	img.style.width = width/2 + "px";
 }
+function isValidURLPath(path)
+{
+	if (!path.startsWith("/"))
+		return false;
+	let origin = "https://a.com";
+	let url = new URL(origin + path);
+	if (url.origin == origin)
+		return true;
+	return false;
+}
