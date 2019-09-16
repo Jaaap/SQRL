@@ -158,7 +158,7 @@ function onImportFormSubmit(evt)
 {
 	evt.preventDefault();
 	let ta = document.querySelector('form#import textarea[name="identity"]');
-	chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value}, result => {
+	chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value, 'closeTab': true}, result => {
 		if (!result || !result.success)
 			alert("Submit failed\n\n" + JSON.stringify(result, null, "\t"));
 	});

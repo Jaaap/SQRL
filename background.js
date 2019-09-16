@@ -418,21 +418,26 @@ function importIdentity(ti, rescueCode, enscryptedRescueCode, newPassword, sendR
 				ti = validationResult.trimmedTextualInput;
 				try
 				{
-					let extractedBlock2 = parseBlockType2(ti);
+					let s4BlocksData = parseS4Blocks(ti);
 					textualIdentity = ti;
 					chrome.storage.local.set({"textualIdentity": ti}, () => {
 						if (chrome.runtime.lastError)
 							console.warn("chrome.storage.local.set", "textualIdentity", chrome.runtime.lastError);
 					});
 					//console.log("rescueCode", JSON.stringify(Array.from(rescueCode)), rescueCode.length);
-					let prms = enscryptedRescueCode == null ? enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), extractedBlock2.enscryptSalt, extractedBlock2.enscryptLogN, extractedBlock2.enscryptIter, (step, max) => {
+					let prms = enscryptedRescueCode == null ? enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, str2ab(rescueCode.replace(/[^0-9]/g, "")), s4BlocksData.enscryptSalt, s4BlocksData.enscryptLogN, s4BlocksData.enscryptIter, (step, max) => {
 						chrome.runtime.sendMessage({'action': 'importIdentity.enscryptUpdate', "step": step, "max": max}, result => {/* do nothing */});
 					}) : new Promise(resolve => resolve(enscryptedRescueCode));
 					prms.then(enscryptedRescueCodeLocal => {
 						//console.log("enscryptedRescueCodeLocal", JSON.stringify(Array.from(enscryptedRescueCodeLocal)));
-						aesGcmDecrypt(extractedBlock2.dataToDecrypt, extractedBlock2.additionalData, enscryptedRescueCodeLocal, new Uint8Array(12)).then(IUK => {
+						aesGcmDecrypt(s4BlocksData.dataToDecrypt, s4BlocksData.additionalData, enscryptedRescueCodeLocal, new Uint8Array(12)).then(IUK => {
 							let newIMK = enhash(IUK);
 							let newILK = localSodium.crypto_scalarmult_base(IUK);
+
+							//TODO FIXME: decrypt/store data from s4BlocksData.previousIdentities ("edition", "dataToDecrypt", "additionalData")
+							//https://github.com/kalaspuffar/secure-quick-reliable-login/blob/master/app/src/main/java/org/ea/sqrl/processors/SQRLStorage.java
+
+
 //console.log("importIdentity", "IUK", ab2hex(IUK));
 //console.log("importIdentity", "IMK", ab2hex(newIMK));
 //console.log("importIdentity", "ILK", ab2hex(newILK));
@@ -782,7 +787,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	{
 		partialTextualIdentity = request.textualIdentity;
 		sendResponse({"success": true});
-		chrome.tabs.remove(importIdentityTabId);
+		if (importIdentityTabId && request.closeTab)
+		{
+			chrome.tabs.remove(importIdentityTabId);
+			importIdentityTabId = null;
+		}
 	}
 	else
 		console.warn("background", "request action not recognised", request.action);
@@ -982,18 +991,44 @@ async function aesGcmCrypt(isEncrypt, data, additionalData, password, iv)
 		return Promise.reject('Argument 1 "data" should be a non-empty Uint8Array');
 }
 
-function parseBlockType2(ti)
+function parseS4Blocks(ti)
 {
 	let identityData = parseTextualIdentity(ti);
-	let blockSize = ab2int(identityData.slice(0, 2));
-	let data = identityData.slice(0, blockSize);
-	return {
-		"enscryptSalt": data.slice(4, 20),
-		"enscryptLogN": ab2int(data.slice(20, 21)),
-		"enscryptIter": ab2int(data.slice(21, 25)),
-		"dataToDecrypt": data.slice(25, 73),
-		"additionalData": data.slice(0, 25)
+	if ([73, 127, 159, 191, 223].indexOf(identityData.length) == -1)
+		throw new Error('ERRPS001', "Expected size of identityData to be in [73, 127, 159, 191, 223] but was" + identityData.length);
+	let block2type = ab2int(identityData.slice(2, 4));
+	if (block2type != 2)
+		throw new Error('ERRPS002', "Expected type of first block to be 2 but was" + block2type);
+	let block2size = ab2int(identityData.slice(0, 2));
+	if (block2size != 73)
+		throw new Error('ERRPS003', "Expected size of block type 2 to be 73 but was" + block2size);
+	let data2 = identityData.slice(0, block2size);
+	let result = {
+		"enscryptSalt": data2.slice(4, 20),
+		"enscryptLogN": ab2int(data2.slice(20, 21)),
+		"enscryptIter": ab2int(data2.slice(21, 25)),
+		"dataToDecrypt": data2.slice(25, 73),
+		"additionalData": data2.slice(0, 25)
 	};
+	if (identityData.length > 73) //Contains block of type 3
+	{
+		let data3 = identityData.slice(block2size);
+		let block3type = ab2int(data3.slice(2, 4));
+		if (block3type != 3)
+			throw new Error('ERRPS004', "Expected type of second block to be 3 but was" + block3type);
+		let block3size = ab2int(data3.slice(0, 2));
+		if ([54, 86, 118, 150].indexOf(block3size) == -1)
+			throw new Error('ERRPS005', "Expected size of block type 3 to be in [54, 86, 118, 150] but was" + block3size);
+		let block3edition = ab2int(data3.slice(4, 6));
+		if (block3edition < 1 || block3edition > 4)
+			throw new Error('ERRPS006', "Expected edition of second block to be between 1 and 4 but was" + block3edition);
+		result.previousIdentities = {
+			"edition": block3edition,
+			"dataToDecrypt": data2.slice(6, block3size),
+			"additionalData": data2.slice(0, 6)
+		};
+	}
+	return result;
 }
 async function serializeBlock2(dataToDecrypt, additionalData)
 {
