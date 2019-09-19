@@ -1,6 +1,6 @@
 {
 "use strict";
-let localSodium = null, textualIdentity = null, partialTextualIdentity = null, pendingRequest = null, importIdentityTabId;
+let localSodium = null, textualIdentity = null, partialTextualIdentity = null, pendingRequest = null, importIdentityTabId, savepwd = false, IMK = null, ILK = null, previousIUKs = [], passIv = null, passwordEnscrypted = null, passwordEnscryptSalt = null, passwordEnscryptLogN = 9, passwordEnscryptIter = 1;
 
 let sodiumPromise = new Promise((resolve, reject) => {
 	window.sodium = { onload: sod => {
@@ -11,21 +11,25 @@ let sodiumPromise = new Promise((resolve, reject) => {
 
 
 
-let savepwd = false, IMK = null, ILK = null, passIv = null, passwordEnscrypted = null, passwordEnscryptSalt = null, passwordEnscryptLogN = 9, passwordEnscryptIter = 1;
 
-chrome.storage.local.get(["encrIMK", "encrILK", "passIv", "passwordEnscryptSalt", "savepwd", "textualIdentity"], function(result){
+chrome.storage.local.get(["encrIMK", "encrILK", "encrPreviousIUKs", "passIv", "passwordEnscryptSalt", "savepwd", "textualIdentity"], function(result){
 	if (chrome.runtime.lastError)
 		console.warn("chrome.storage.local.get", chrome.runtime.lastError, result);
 	if (result.encrIMK && result.encrILK && result.passIv && result.passwordEnscryptSalt)
 	{
 		IMK = new Uint8Array(result.encrIMK);
+		memzero(result.encrIMK);
+
 		ILK = new Uint8Array(result.encrILK);
+		memzero(result.encrILK);
+
+		if (result.encrPreviousIUKs && result.encrPreviousIUKs.length)
+		{
+			encrPreviousIUKs = result.encrPreviousIUKs.map(epIUK => new Uint8Array(epIUK));
+			result.encrPreviousIUKs.forEach(epIUK => memzero(epIUK));
+		}
 		passIv = new Uint8Array(result.passIv);
 		passwordEnscryptSalt = new Uint8Array(result.passwordEnscryptSalt);
-		memzero(result.encrIMK);
-		memzero(result.encrILK);
-		delete result.encrIMK;
-		delete result.encrILK;
 	}
 	//else console.info("background.getStorage", "ERRGS000", "encrIMK or encrILK or passIv or passwordEnscryptSalt not in localStorage");
 	if (result.textualIdentity)
@@ -111,14 +115,16 @@ async function getIMKorILK(passwd, isIMK)
 		throw new Error('ERRGI003', "Wrong password");
 	}
 }
-async function setIMLK(newIMK, newILK, newPasswordAB)
+async function setIMLK(newIMK, newILK, newPreviousIUKs, newPasswordAB)
 {
 	if (newIMK.constructor !== Uint8Array || newIMK.length !== 32)
 		throw new Error('ERRSI000', 'Argument 1 "newIMK" should be a Uint8Array of length 32');
 	if (newILK.constructor !== Uint8Array || newILK.length !== 32)
 		throw new Error('ERRSI001', 'Argument 2 "newILK" should be a Uint8Array of length 32');
+	if (newPreviousIUKs && (newPreviousIUKs.constructor !== Uint8Array || [32,64,96,128].indexOf(newPreviousIUKs.length) == -1))
+		throw new Error("ERRSI002", 'Argument 3 "newPreviousIUKs" should be a Uint8Array of length 32, 64, 96 or 128');
 	if (newPasswordAB.constructor !== Uint8Array)
-		throw new Error("ERRSI002", 'Argument 3 "newPasswordAB" should be a Uint8Array');
+		throw new Error("ERRSI003", 'Argument 4 "newPasswordAB" should be a Uint8Array');
 	let newPasswordEnscryptSalt = localSodium.randombytes_buf(16);
 	let enscryptedNewPassword = await enscrypt(localSodium.crypto_pwhash_scryptsalsa208sha256_ll, newPasswordAB, newPasswordEnscryptSalt, passwordEnscryptLogN, passwordEnscryptIter, (step, max) => {});
 	memzero(newPasswordAB);
@@ -129,15 +135,28 @@ async function setIMLK(newIMK, newILK, newPasswordAB)
 	memzero(newIMK);
 	let newEncrptdILK = await aesGcmEncrypt(newILK, null, enscryptedNewPassword, newPassIv);
 	memzero(newILK);
+	let newEncrptdPreviousIUKs = [];
+	if (newPreviousIUKs)
+	{
+		for (let i = 0; i < newPreviousIUKs; i+=32)
+		{
+			let newPreviousIUK = newPreviousIUKs.slice(i, i + 32);
+			newEncrptdPreviousIUKs.push(await aesGcmEncrypt(newPreviousIUK, null, enscryptedNewPassword, newPassIv));
+			memzero(newPreviousIUK);
+		}
+		memzero(newPreviousIUKs);
+	}
+	/* Now we are committed to changing the identity. Failures/throws may occur above this line but now below this line. */
 	if (savepwd)
 		passwordEnscrypted = enscryptedNewPassword;
 	else
 		memzero(enscryptedNewPassword);
 	IMK = newEncrptdIMK;
 	ILK = newEncrptdILK;
+	previousIUKs = newEncrptdPreviousIUKs;
 	passIv = newPassIv;
 	passwordEnscryptSalt = newPasswordEnscryptSalt;
-	chrome.storage.local.set({"encrIMK": Array.from(newEncrptdIMK), "encrILK": Array.from(newEncrptdILK), "passIv": Array.from(newPassIv), "passwordEnscryptSalt": Array.from(newPasswordEnscryptSalt)}, () => {
+	chrome.storage.local.set({"encrIMK": Array.from(newEncrptdIMK), "encrILK": Array.from(newEncrptdILK), "encrPreviousIUKs": newEncrptdPreviousIUKs.map(nepIUK => Array.from(nepIUK)), "passIv": Array.from(newPassIv), "passwordEnscryptSalt": Array.from(newPasswordEnscryptSalt)}, () => {
 		if (chrome.runtime.lastError)
 			console.warn("chrome.storage.local.set", chrome.runtime.lastError);
 	});
@@ -433,35 +452,46 @@ function importIdentity(ti, rescueCode, enscryptedRescueCode, newPassword, sendR
 						aesGcmDecrypt(s4BlocksData.dataToDecrypt, s4BlocksData.additionalData, enscryptedRescueCodeLocal, new Uint8Array(12)).then(IUK => {
 							let newIMK = enhash(IUK);
 							let newILK = localSodium.crypto_scalarmult_base(IUK);
-
-							//TODO FIXME: decrypt/store data from s4BlocksData.previousIdentities ("edition", "dataToDecrypt", "additionalData")
-							//https://github.com/kalaspuffar/secure-quick-reliable-login/blob/master/app/src/main/java/org/ea/sqrl/processors/SQRLStorage.java
-
-
 //console.log("importIdentity", "IUK", ab2hex(IUK));
 //console.log("importIdentity", "IMK", ab2hex(newIMK));
 //console.log("importIdentity", "ILK", ab2hex(newILK));
 							memzero(IUK);
-							let newPasswordAB = str2ab(newPassword);//FIXME: dont allow empty password
-							setIMLK(newIMK, newILK, newPasswordAB).then(result => {
-								memzero(newIMK);
-								memzero(newILK);
-								//do not memzero newPasswordAB
-								if (result && result.success)
+
+							//See ttps://github.com/kalaspuffar/secure-quick-reliable-login/blob/master/app/src/main/java/org/ea/sqrl/processors/SQRLStorage.java
+							let prms2 = s4BlocksData.previousIdentities ? aesGcmDecrypt(s4BlocksData.previousIdentities.dataToDecrypt, s4BlocksData.previousIdentities.additionalData, newIMK, new Uint8Array(12)) : new Promise(resolve => resolve());
+							prms2.then(newPreviousIUKs => {
+								if (!newPreviousIUKs || newPreviousIUKs.length == 32 * s4BlocksData.previousIdentities.edition)
 								{
-									sendResponse({"success": true});
+									let newPasswordAB = str2ab(newPassword);//FIXME: dont allow empty password
+									setIMLK(newIMK, newILK, newPreviousIUKs, newPasswordAB).then(result => {
+										memzero(newIMK);
+										memzero(newILK);
+										//do not memzero newPasswordAB
+										if (result && result.success)
+										{
+											sendResponse({"success": true});
+										}
+										else
+										{
+											console.warn("background.importIdentity", "ERRII007", "setIMLK failed");
+											sendResponse({"success": false, "errorCode": "ERRII007"});
+										}
+									}).catch(err => {
+										memzero(newIMK);
+										memzero(newILK);
+										//do not memzero newPasswordAB
+										console.warn("background.importIdentity", "ERRII005", "setIMLK threw error", err);
+										sendResponse({"success": false, "errorCode": "ERRII005"});
+									});
 								}
 								else
 								{
-									console.warn("background.importIdentity", "ERRII007", "setIMLK failed");
-									sendResponse({"success": false, "errorCode": "ERRII007"});
+									console.warn("background.importIdentity", "ERRII009", "Expected size of newPreviousIUKs to be " + (32 * s4BlocksData.previousIdentities.edition) + " but was " + newPreviousIUKs.length);
+									sendResponse({"success": false, "errorCode": "ERRII009"});
 								}
 							}).catch(err => {
-								memzero(newIMK);
-								memzero(newILK);
-								//do not memzero newPasswordAB
-								console.warn("background.importIdentity", "ERRII005", "setIMLK threw error", err);
-								sendResponse({"success": false, "errorCode": "ERRII005"});
+								console.warn("background.importIdentity", "ERRII008", "aesGcmDecrypt newPreviousIUKs failed");
+								sendResponse({"success": false, "errorCode": "ERRII008"});
 							});
 						}).catch(err => {
 							console.warn("background.importIdentity", "ERRII004", "aesGcmDecrypt IUK failed");
@@ -742,7 +772,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		passIv = null;
 		passwordEnscryptSalt = null;
 		textualIdentity = null;
-		chrome.storage.local.remove(["encrIMK", "encrILK", "textualIdentity", "passwordEnscryptSalt", "passIv"], () => {
+		chrome.storage.local.remove(["encrIMK", "encrILK", "encrPreviousIUKs", "textualIdentity", "passwordEnscryptSalt", "passIv"], () => {
 			if (chrome.runtime.lastError)
 				console.warn("chrome.storage.local.remove", chrome.runtime.lastError);
 			sendResponse(chrome.runtime.lastError);
