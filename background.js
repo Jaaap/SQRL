@@ -1,6 +1,58 @@
 {
 "use strict";
-let localSodium = null, textualIdentity = null, partialTextualIdentity = null, pendingRequest = null, importIdentityTabId, savepwd = false, IMK = null, ILK = null, previousIUKs = [], passIv = null, passwordEnscrypted = null, passwordEnscryptSalt = null, passwordEnscryptLogN = 9, passwordEnscryptIter = 1;
+let localSodium = null, textualIdentity = null, partialTextualIdentity = null, pendingRequest = null, importIdentityTabId, savepwd = false, encrIMK = null, encrILK = null, previousIUKs = [], passIv = null, passwordEnscrypted = null, passwordEnscryptSalt = null, passwordEnscryptLogN = 9, passwordEnscryptIter = 1;
+
+/*
+REQUEST
+	client
+		ver:	VERsion
+		cmd:	CoMmanD
+			query
+			ident
+			disable
+			enable
+			remove
+		idk:	IDentity Key
+		pidk:	Previous IDentity Key
+		ins:	INdex Secret
+		pins:	Previous INdex Secret
+		suk:	Server Unlock Key
+		vuk:	Verify Unlock Key
+	server:	Initial SQRL URL or prev server response
+	ids:	IDentity Signature
+	pids:	Previous IDentity Signature
+	urs:	Unlock Request Signature
+	opt
+		noiptest
+		sqrlonly
+		hardlock
+		cps
+		suk
+	btn:	The index of the button the user selected in response to "ask"
+
+RESPONSE
+	ver:	VERsion
+	nut:	Nonce
+	tif:	Transaction Information Flag
+		1:	Id match
+		2:	Previous ID match
+		4:	IPs matched
+		8:	SQRL disabled
+		16:	Function not supported
+		32:	Transient error
+		64:	Command failed
+		128:	Client failure
+		256:	Bad ID Association
+		512:	Identity superseded
+	qry:	Query path for next request
+	url:	URL where the browser should redirect to afer a successful login
+	can:	URL where the browser should redirect to afer a failure or cancellation
+	sin:	Secret INdex
+	suk:	Server Unlock Key
+	ask:	Question to be presented to the User
+INTERNAL
+	SK:	Secret Key, the secret counterpart of the IDK
+*/
 
 let sodiumPromise = new Promise((resolve, reject) => {
 	window.sodium = { onload: sod => {
@@ -17,15 +69,15 @@ chrome.storage.local.get(["encrIMK", "encrILK", "encrPreviousIUKs", "passIv", "p
 		console.warn("chrome.storage.local.get", chrome.runtime.lastError, result);
 	if (result.encrIMK && result.encrILK && result.passIv && result.passwordEnscryptSalt)
 	{
-		IMK = new Uint8Array(result.encrIMK);
+		encrIMK = new Uint8Array(result.encrIMK);
 		memzero(result.encrIMK);
 
-		ILK = new Uint8Array(result.encrILK);
+		encrILK = new Uint8Array(result.encrILK);
 		memzero(result.encrILK);
 
 		if (result.encrPreviousIUKs && result.encrPreviousIUKs.length)
 		{
-			encrPreviousIUKs = result.encrPreviousIUKs.map(epIUK => new Uint8Array(epIUK));
+			previousIUKs = result.encrPreviousIUKs.map(epIUK => new Uint8Array(epIUK));
 			result.encrPreviousIUKs.forEach(epIUK => memzero(epIUK));
 		}
 		passIv = new Uint8Array(result.passIv);
@@ -57,11 +109,11 @@ function setSavepwd(newSavepwd)
 }
 function hasIMK()
 {
-	return IMK != null && passIv != null && passwordEnscryptSalt != null;
+	return encrIMK != null && passIv != null && passwordEnscryptSalt != null;
 }
 function hasILK()
 {
-	return ILK != null && passIv != null && passwordEnscryptSalt != null;
+	return encrILK != null && passIv != null && passwordEnscryptSalt != null;
 }
 async function getIMK(passwd)
 {
@@ -99,7 +151,7 @@ async function getIMKorILK(passwd, isIMK)
 
 	try
 	{
-		let decrypted = await aesGcmDecrypt(isIMK ? IMK : ILK, null, passwordEnscrypted, passIv);
+		let decrypted = await aesGcmDecrypt(isIMK ? encrIMK : encrILK, null, passwordEnscrypted, passIv);
 		if (!savepwd)
 		{
 			memzero(passwordEnscrypted);
@@ -151,8 +203,8 @@ async function setIMLK(newIMK, newILK, newPreviousIUKs, newPasswordAB)
 		passwordEnscrypted = enscryptedNewPassword;
 	else
 		memzero(enscryptedNewPassword);
-	IMK = newEncrptdIMK;
-	ILK = newEncrptdILK;
+	encrIMK = newEncrptdIMK;
+	encrILK = newEncrptdILK;
 	previousIUKs = newEncrptdPreviousIUKs;
 	passIv = newPassIv;
 	passwordEnscryptSalt = newPasswordEnscryptSalt;
@@ -169,16 +221,6 @@ function hasPassword()
 
 async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 {
-/*
-	if (typeof href != "string" || !href.startsWith("sqrl://"))
-		throw new Error('ERRPD001', 'Argument 1 "href" should be a string starting with "sqrl://"');
-	if (typeof windowLoc != "string" || !/^https?:\/\//.test(windowLoc))
-		throw new Error('ERRPD002', 'Argument 2 "windowLoc" should be a string starting with "http://" or "https://"');
-	let linkUrl = new URL(href.replace(/^sqrl:/, 'https:'));
-	let windowLocUrl = new URL(windowLoc);
-	if (linkUrl.origin !== windowLocUrl.origin)
-		throw new Error('ERRPD008', 'Cross-Origin Authentication attempt');
-*/
 	if (linkUrl == null)
 		throw new Error('ERRPD001', 'Argument 1 "linkUrl" should not be null');
 	if (!(linkUrl instanceof URL))
@@ -203,8 +245,6 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 		throw new Error('ERRPD010', 'Missing password');
 
 	await sodiumPromise;
-	let currIMK = await getIMK(passwdFromPopupAB);
-	//pendingRequest = null;
 	let hostnameExtended = linkUrl.hostname;
 	if (linkUrl.search.length > 1)//starts with '?'
 	{
@@ -215,46 +255,48 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 			hostnameExtended = linkUrl.hostname + linkUrl.pathname.substr(0,x);
 		}
 	}
-	let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hostnameExtended, currIMK);
-	memzero(currIMK);
+	let { publicKey: IDK, privateKey: SK } = getIDK(hostnameExtended, await getIMK(passwdFromPopupAB));//clears IMK
 
-	let { publicKey: SitePublicKey, privateKey: SitePrivateKey } = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
-	memzero(HMAC256Hash);
+	try {
+		let clientData = [
+			"cmd=query",
+			"ver=1",
+			"idk=" + localSodium.to_base64(IDK),
+			"opt=cps" //"opt=suk"
+			//FIXME: add "ins" when server requests it via sin=i
+		];
+	/*
+		if (previousIUKs.length)
+		{
+			let { publicKey: PIDK, privateKey: prevSK } = getIDK(hostname, enhash(previousIUKs[0]));//clears IMK
+			clientData.push("pidk=" + localSodium.to_base64(PIDK));
+		}
+	*/
+		clientData.push(""); //keep this empty string for trailing \r\n
+		let client = base64url_encode(clientData.join("\r\n"));
 
-	let clientData = [
-		"cmd=query",
-		"ver=1",
-		"idk=" + localSodium.to_base64(SitePublicKey),
-		"opt=cps" //"opt=suk"
-		//FIXME: add "ins" when server requests it via sin=i
-	];
-	clientData.push(""); //keep this empty string for trailing \r\n
-	let client = base64url_encode(clientData.join("\r\n"));
-	memzero(SitePublicKey);
-
-	let ids = localSodium.crypto_sign_detached(client + server, SitePrivateKey, 'base64');
-	//memzero(SitePrivateKey);
-//console.log("doServerRequest", "client", clientData);
-//console.log("doServerRequest", "server", server);
-//console.log("doServerRequest", "ids", ids);
+		let ids = localSodium.crypto_sign_detached(client + server, SK, 'base64');
+	//console.log("doServerRequest", "client", clientData);
+	//console.log("doServerRequest", "server", server);
+	//console.log("doServerRequest", "ids", ids);
 
 
-// STEP 1: do q cmd=query
-//console.log("fetch", linkUrl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
-	let resp1 = await fetch(linkUrl.href, {
-		"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'),
-		"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-		"method": "POST", // *GET, PUT, DELETE, etc.
-		"headers": { "content-type": "application/x-www-form-urlencoded" },
-		"referer": "no-referrer", // *client, no-referrer
-		"redirect": "error", // *manual, follow, error
-		"credentials": "omit", // include, *omit, same-origin
-	}).catch(err => {
-		memzero(SitePrivateKey);
-		throw new Error("ERRFE000", "Error in request1 to server");
-	});
-	if (resp1 && resp1.ok) //statusCode == 200
-	{
+	// STEP 1: do q cmd=query
+	//console.log("fetch", linkUrl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
+		let resp1 = await fetch(linkUrl.href, {
+			"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'),
+			"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+			"method": "POST", // *GET, PUT, DELETE, etc.
+			"headers": { "content-type": "application/x-www-form-urlencoded" },
+			"referer": "no-referrer", // *client, no-referrer
+			"redirect": "error", // *manual, follow, error
+			"credentials": "omit", // include, *omit, same-origin
+		}).catch(err => {
+			throw new Error("ERRFE000", "Error in request1 to server");
+		});
+		if (!resp1 || !resp1.ok) //statusCode == 200
+			throw new Error("ERRFE008", "Response1 statuscode other than 200");
+
 		let responseText1;
 		try
 		{
@@ -262,107 +304,80 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 		}
 		catch (e)
 		{
-			memzero(SitePrivateKey);
 			throw new Error("ERRFE010", "Error reading response from request1");
 		}
 		let responseMap1 = getResponseAsMap(responseText1);
-		if ("tif" in responseMap1)
-		{
-			if ("qry" in responseMap1 && isValidURLPath(responseMap1.qry))
-			{
-				clientData[0] = "cmd=ident";
-				clientData.pop(); //remove empty string previously pushed
-				let tif1 = Number.parseInt(responseMap1.tif, 16);
-				if (!bitIsSet(tif1, IP_MATCH))
-				{
-					throw new Error("ERRFE012", "IP MISMATCH on 1st call");
-				}
-				if (!bitIsSet(tif1, ID_MATCH))
-				{
-					let currILK = await getILK(passwdFromPopupAB);
-					let [SUK, VUK] = getSukVuk(currILK);
-					memzero(currILK);//getSukVuk also memzeros currILK
-					clientData.push("suk=" + localSodium.to_base64(SUK));
-					clientData.push("vuk=" + localSodium.to_base64(VUK));
-					memzero(SUK);
-					memzero(VUK);
-				}
-				clientData.push(""); //keep this empty string for trailing \r\n
-				let client = base64url_encode(clientData.join("\r\n"));
 
-				ids = localSodium.crypto_sign_detached(client + responseText1, SitePrivateKey, 'base64');
-				memzero(SitePrivateKey);
-				let resp2 = await fetch(linkUrl.origin + responseMap1.qry, {
-					"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(responseText1), "ids=" + encodeURIComponent(ids)].join('&'),
-					"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-					"method": "POST", // *GET, PUT, DELETE, etc.
-					"headers": { "content-type": "application/x-www-form-urlencoded" },
-					"referer": "no-referrer", // *client, no-referrer
-					"redirect": "error", // *manual, follow, error
-					"credentials": "omit", // include, *omit, same-origin
-				}).catch(err => {
-					throw new Error("ERRFE001", "Error in request2 to server");
-				});
-				if (resp2 && resp2.ok) //statusCode == 200
-				{
-					let responseText2;
-					try
-					{
-						responseText2 = await resp2.text();
-					}
-					catch (e)
-					{
-						memzero(SitePrivateKey);
-						throw new Error("ERRFE011", "Error reading response from request2");
-					}
-					let responseMap2 = getResponseAsMap(responseText2);
-					if ("tif" in responseMap2)
-					{
-						//0x01	(Current) ID match: When set, this bit indicates that the web server has found an identity association for the user based upon the default (current) identity credentials supplied by the client: the IDentity Key (idk) and the IDentity Signature (ids).
-						let tif2 = Number.parseInt(responseMap2.tif, 16);
-						if (!bitIsSet(tif2, IP_MATCH))
-						{
-							throw new Error("ERRFE012", "IP MISMATCH on 2nd call");
-						}
-						if ("url" in responseMap2)
-						{
-							return {"success": true, "url": responseMap2.url};
-						}
-						else if (!bitIsSet(tif2, ID_MATCH))
-						{
-							throw new Error("ERRFE003", "No IDMATCH in responseMap2");
-						}
-						else
-						{
-							throw new Error("ERRFE002", "No url in responseMap2");
-						}
-					}
-					else
-					{
-						throw new Error("ERRFE004", "No tif in responseMap2");
-					}
-				}
-				else
-				{
-					throw new Error("ERRFE005", "Response2 statuscode other than 200");
-				}
-			}
-			else
-			{
-				memzero(SitePrivateKey);
-				throw new Error("ERRFE006", "No qry in responseMap1");
-			}
-		}
-		else
-		{
-			memzero(SitePrivateKey);
+		if (!("tif" in responseMap1))
 			throw new Error("ERRFE007", "No tif in responseMap1");
+		if (!("qry" in responseMap1) || !isValidURLPath(responseMap1.qry))
+			throw new Error("ERRFE006", "No qry in responseMap1");
+
+		clientData[0] = "cmd=ident";
+		clientData.pop(); //remove empty string previously pushed
+		let tif1 = Number.parseInt(responseMap1.tif, 16);
+		if (!bitIsSet(tif1, IP_MATCH))
+		{
+			throw new Error("ERRFE012", "IP MISMATCH on 1st call");
 		}
+		if (!bitIsSet(tif1, ID_MATCH))
+		{
+			let currILK = await getILK(passwdFromPopupAB);
+			let [SUK, VUK] = getSukVuk(currILK);
+			memzero(currILK);//getSukVuk also memzeros currILK
+			clientData.push("suk=" + localSodium.to_base64(SUK));
+			clientData.push("vuk=" + localSodium.to_base64(VUK));
+			memzero(SUK);
+			memzero(VUK);
+		}
+		clientData.push(""); //keep this empty string for trailing \r\n
+		client = base64url_encode(clientData.join("\r\n"));
+
+		ids = localSodium.crypto_sign_detached(client + responseText1, SK, 'base64');
+		memzero(SK);
+		let resp2 = await fetch(linkUrl.origin + responseMap1.qry, {
+			"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(responseText1), "ids=" + encodeURIComponent(ids)].join('&'),
+			"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+			"method": "POST", // *GET, PUT, DELETE, etc.
+			"headers": { "content-type": "application/x-www-form-urlencoded" },
+			"referer": "no-referrer", // *client, no-referrer
+			"redirect": "error", // *manual, follow, error
+			"credentials": "omit", // include, *omit, same-origin
+		}).catch(err => {
+			throw new Error("ERRFE001", "Error in request2 to server");
+		});
+		if (!resp2 || !resp2.ok) //statusCode == 200
+			throw new Error("ERRFE005", "Response2 statuscode other than 200");
+
+		let responseText2;
+		try
+		{
+			responseText2 = await resp2.text();
+		}
+		catch (e)
+		{
+			throw new Error("ERRFE011", "Error reading response from request2");
+		}
+		let responseMap2 = getResponseAsMap(responseText2);
+		if (!("tif" in responseMap2))
+			throw new Error("ERRFE004", "No tif in responseMap2");
+
+		//0x01	(Current) ID match: When set, this bit indicates that the web server has found an identity association for the user based upon the default (current) identity credentials supplied by the client: the IDentity Key (idk) and the IDentity Signature (ids).
+		let tif2 = Number.parseInt(responseMap2.tif, 16);
+
+		if (!bitIsSet(tif2, IP_MATCH))
+			throw new Error("ERRFE012", "IP MISMATCH on 2nd call");
+		if (!bitIsSet(tif2, ID_MATCH))
+			throw new Error("ERRFE003", "No IDMATCH in responseMap2");
+
+		if ("url" in responseMap2)
+			return {"success": true, "url": responseMap2.url};
+		else
+			throw new Error("ERRFE002", "No url in responseMap2");
 	}
-	else
+	finally
 	{
-		memzero(SitePrivateKey);
-		throw new Error("ERRFE008", "Response1 statuscode other than 200");
+		memzero(SK);
 	}
 }
 
@@ -381,6 +396,14 @@ function getResponseAsMap(responseText)
 }
 
 
+function getIDK(hostname, IMK)//clears IMK
+{
+	let HMAC256Hash = localSodium.crypto_auth_hmacsha256(hostname, IMK);
+	memzero(IMK);
+	let result = localSodium.crypto_sign_seed_keypair(HMAC256Hash);
+	memzero(HMAC256Hash);
+	return result;
+}
 
 function getSukVuk(ILK)//ILK IS MEMZERO'D by this function
 {
@@ -760,14 +783,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	}
 	else if (request.action === "eraseIdentity")
 	{
-		if (IMK != null)
-			memzero(IMK);
-		if (ILK != null)
-			memzero(ILK);
+		if (encrIMK != null)
+			memzero(encrIMK);
+		if (encrILK != null)
+			memzero(encrILK);
 		if (passwordEnscrypted != null)
 			memzero(passwordEnscrypted);
-		IMK = null;
-		ILK = null;
+		encrIMK = null;
+		encrILK = null;
 		passwordEnscrypted = null;
 		passIv = null;
 		passwordEnscryptSalt = null;
