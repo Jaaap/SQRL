@@ -259,30 +259,30 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 
 	try {
 		let clientData = [
-			"cmd=query",
+			"cmd=query", //cmd must be at index 0 so it can be changed later
 			"ver=1",
 			"idk=" + localSodium.to_base64(IDK),
 			"opt=cps" //"opt=suk"
 			//FIXME: add "ins" when server requests it via sin=i
 		];
-	/*
+/*
 		if (previousIUKs.length)
 		{
 			let { publicKey: PIDK, privateKey: prevSK } = getIDK(hostname, enhash(previousIUKs[0]));//clears IMK
 			clientData.push("pidk=" + localSodium.to_base64(PIDK));
 		}
-	*/
+*/
 		clientData.push(""); //keep this empty string for trailing \r\n
 		let client = base64url_encode(clientData.join("\r\n"));
 
 		let ids = localSodium.crypto_sign_detached(client + server, SK, 'base64');
-	//console.log("doServerRequest", "client", clientData);
-	//console.log("doServerRequest", "server", server);
-	//console.log("doServerRequest", "ids", ids);
+//console.log("doServerRequest", "client", clientData);
+//console.log("doServerRequest", "server", server);
+//console.log("doServerRequest", "ids", ids);
 
 
-	// STEP 1: do q cmd=query
-	//console.log("fetch", linkUrl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
+// STEP 1: do q cmd=query
+//console.log("fetch", linkUrl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
 		let resp1 = await fetch(linkUrl.href, {
 			"body": ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'),
 			"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
@@ -313,13 +313,14 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 		if (!("qry" in responseMap1) || !isValidURLPath(responseMap1.qry))
 			throw new Error("ERRFE006", "No qry in responseMap1");
 
-		clientData[0] = "cmd=ident";
-		clientData.pop(); //remove empty string previously pushed
 		let tif1 = Number.parseInt(responseMap1.tif, 16);
 		if (!bitIsSet(tif1, IP_MATCH))
 		{
 			throw new Error("ERRFE012", "IP MISMATCH on 1st call");
 		}
+
+		clientData[0] = "cmd=ident";
+		clientData.pop(); //remove empty string previously pushed
 		if (!bitIsSet(tif1, ID_MATCH))
 		{
 			let currILK = await getILK(passwdFromPopupAB);
