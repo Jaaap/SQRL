@@ -86,7 +86,7 @@ function parseTextualIdentity(ti)
 		//console.log("identityData", JSON.stringify(Array.from(identityData)), identityData.length);
 		let blockSize = ab2int(identityData.slice(0, 2));
 		let blockType = ab2int(identityData.slice(2, 4));
-		if (blockType == 2) //The TI should start with a block of type to and may also have a block of type 3
+		if (blockType == 2) //The TI should start with a block of type 2 and may also have a block of type 3
 		{
 			if (blockSize == 73)
 			{
