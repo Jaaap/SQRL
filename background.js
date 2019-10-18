@@ -277,7 +277,7 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 			""
 		];
 /// START LOOP
-		let prevIndex = 0, foundMatch = false, currIDMatches = false, responseText1, responseMap1;
+		let prevIndex = 0, foundMatch = false, currIDMatches = false, responseText1 = server, responseMap1 = {"qry": linkUrl.pathname + linkUrl.search};
 		do
 		{
 			clientData.pop(); //remove empty string
@@ -297,14 +297,14 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 			clientData.push(""); //keep this empty string for trailing \r\n
 			let client = base64url_encode(clientData.join("\r\n"));
 
-			let ids = localSodium.crypto_sign_detached(client + server, SK, 'base64');
-			let body = ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)];
+			let ids = localSodium.crypto_sign_detached(client + responseText1, SK, 'base64');
+			let body = ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(responseText1), "ids=" + encodeURIComponent(ids)];
 //console.log("doServerRequest", "client", clientData);
 //console.log("doServerRequest", "server", server);
 //console.log("doServerRequest", "ids", ids);
 			if (encrPreviousIUKs.length)
 			{
-				let pids = localSodium.crypto_sign_detached(client + server, prevSK, 'base64');
+				let pids = localSodium.crypto_sign_detached(client + responseText1, prevSK, 'base64');
 				body.push("pids=" + encodeURIComponent(pids));
 //console.log("doServerRequest", "pids", pids);
 			}
@@ -312,7 +312,7 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 
 // STEP 1: do q cmd=query
 //console.log("fetch", linkUrl.href, ["client=" + encodeURIComponent(client), "server=" + encodeURIComponent(server), "ids=" + encodeURIComponent(ids)].join('&'));
-			let resp1 = await fetch(linkUrl.href, {
+			let resp1 = await fetch(linkUrl.origin + responseMap1.qry, {
 				"body": body.join('&'),
 				"cache": "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
 				"method": "POST", // *GET, PUT, DELETE, etc.
