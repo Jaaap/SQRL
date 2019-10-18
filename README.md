@@ -44,16 +44,17 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
   - [ ] sqrlonly
   - [ ] hardlock
   - [ ] suk
-- [ ] tif
+- [x] tif
   - [x] ID_MATCH (1)
-  - [ ] PREV_ID_MATCH (2)
+  - [x] PREV_ID_MATCH (2)
   - [x] IP_MATCH (4)
-  - [ ] SQRL_DISABLED (8)
-  - [ ] UNSUPPORTED_FUNCTION (16)
-  - [ ] TRANSIENT_ERROR (32)
-  - [ ] COMMAND_FAILED (64)
-  - [ ] CLIENT_FAILURE (128)
-  - [ ] BAD_ID (256)
+  - [x] SQRL_DISABLED (8)
+  - [x] UNSUPPORTED_FUNCTION (16)
+  - [x] TRANSIENT_ERROR (32)
+  - [x] COMMAND_FAILED (64)
+  - [x] CLIENT_FAILURE (128)
+  - [x] BAD_ID (256)
+  - [x] ID_SUPERCEDED (512)
 - [ ] QuickPass
 - [ ] ver ≠ 1
 - [ ] ask / btn
@@ -63,7 +64,7 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [ ] Alternate IDK
 - [ ] Rekeyed identities
   - [ ] Rekey an existing identity
-  - [ ] Work with rekeyed identities in server communication (max 3 PIUKs)
+  - [x] Work with rekeyed identities in server communication (max 3 PIUKs)
 - [ ] Client secrets (SIN/INS/PINS)
 - [ ] Change password with old password
 - [ ] Change password with Rescue Code
