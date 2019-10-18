@@ -36,6 +36,8 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 
 ## SQRL feature status
 - [ ] cmd
+  - [x] query
+  - [x] ident
   - [ ] disable
   - [ ] enable (URS/SUK)
   - [ ] remove (URS/SUK)
