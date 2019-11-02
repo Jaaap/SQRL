@@ -222,3 +222,7 @@ function isValidURLPath(path)
 		return true;
 	return false;
 }
+function insertStringBeforeCaret(input, val)
+{
+	input.setRangeText(val, input.selectionStart, input.selectionEnd, "end");
+}

@@ -1,5 +1,8 @@
 {
 "use strict";
+let isValidBase56Char = new RegExp(`^[${base56chars}]$`);
+let canPrependEnterRE = new RegExp(`[${base56chars}]{4} [${base56chars}]{4} [${base56chars}]{4} [${base56chars}]{4} [${base56chars}]{4}$`);
+let canPrependSpaceRE = new RegExp(`[${base56chars}]{4}$`);
 
 function onGenerateNewIdentityClick(evt)
 {
@@ -30,18 +33,41 @@ function onInputInput(evt)
 {
 	this.setCustomValidity("");
 }
+function onTextualIdentityKeyDown(evt)
+{
+	let ta = evt.target;
+	let val = ta.value;
+	if (evt.isTrusted && !evt.ctrlKey && !evt.metaKey && isValidBase56Char.test(evt.key) && ta.selectionStart == ta.selectionEnd && ta.selectionStart == val.length)
+	{
+		if (canPrependEnterRE.test(val))
+			insertStringBeforeCaret(ta, "\n");
+		else if (canPrependSpaceRE.test(val))
+			insertStringBeforeCaret(ta, " ");
+	}
+}
 function onTextualIdentityKeyUp(evt)
 {
 	let ta = evt.target;
 	validateTextualIdentity(ta.value).then(validationData => {
 		$('form#import label+b').text(new Array(validationData.lineNr + 1).join('✅ ') + (validationData.success ? '' : '❌')).attr("title", validationData.message||"");
-		$('form#import textarea[name="identity"]')[0].setCustomValidity(validationData.message||"");
-		chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value}, result => {
-			if (!result || !result.success)
-			{
-				console.warn("importPartialIdentity", result);
-			}
-		});
+		let wasValid = ta.checkValidity();
+		ta.setCustomValidity(validationData.message||"");
+		if (validationData.message)
+			ta.reportValidity();
+		else if (!wasValid)
+		{
+			ta.blur();
+			ta.focus();
+		}
+		if ("chrome" in window)
+		{
+			chrome.runtime.sendMessage({'action': 'importPartialIdentity', "textualIdentity": ta.value}, result => {
+				if (!result || !result.success)
+				{
+					console.warn("importPartialIdentity", result);
+				}
+			});
+		}
 	}).catch(err => {
 		console.warn("popup.onTextualIdentityKeyUp", "ERRVA000", err);
 	});
@@ -262,7 +288,7 @@ function init()
 	$('form#eraseidentity').submit(onEraseidentityFormSubmit);
 	$('form#create input[name="verifyrescuecode"]').focus(onVerifyrescuecodeFocus).blur(onVerifyrescuecodeBlur).bind("input", onInputInput);
 	$('form input[name="verifypassword"]').bind("input", onInputInput);
-	$('form#import textarea[name="identity"]').keyup(onTextualIdentityKeyUp);
+	$('form#import textarea[name="identity"]').keydown(onTextualIdentityKeyDown).keyup(onTextualIdentityKeyUp);
 	$('form#settings').submit(onSettingsFormSubmit);
 	$('form#passwd').submit(onPasswdFormSubmit);
 	$('input[data-errormessage]').bind("input", onInputInputValidate).bind("invalid", onInputInvalidValidate);
