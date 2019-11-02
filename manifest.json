@@ -3,7 +3,7 @@
 	"description": "__MSG_description__",
 	"default_locale": "en",
 	"manifest_version": 2,
-	"version": "0.0.54",
+	"version": "0.0.55",
 	"homepage_url": "https://github.com/Jaaap/SQRL",
 	"applications": {
 		"gecko": {
@@ -15,7 +15,7 @@
 	},
 	"permissions": [
 		"storage",
-		"tabs",
+		"activeTab",
 		"https://*/*"
 	],
 	"content_security_policy": "script-src 'self'; object-src 'self'; img-src data: 'self'",
