@@ -25,7 +25,7 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [x] Firefox white empty popup: https://bugzilla.mozilla.org/show_bug.cgi?id=1416505
 - [ ] Explain import needs Rescue Code, cannot import with Password
 - [x] Explain Settings > Password > Remember
-- [ ] Automatic formatting for textual identity input
+- [x] Automatic formatting for textual identity input
 
 ## Feature requests
 - Change name of identity
