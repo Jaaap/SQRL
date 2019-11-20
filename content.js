@@ -18,23 +18,23 @@ function onAnchorClick(evt)
 				else
 					console.warn("content", "onAnchorClick", "ERRAC001");
 			});
-			//var anchor = $('#sqrl')
+			//let anchor = $('#sqrl')
 			//draw arrow from anchor to top right of screen
-			var rect = anchor.getBoundingClientRect();
+			let rect = anchor.getBoundingClientRect();
 			//coordinates relative to top left corner of documentElement
-			var x1 = rect.right;
-			var y1 = rect.top;
-			var x2 = document.documentElement.clientWidth - 32;
-			var y2 = 50; //0;
-			var dx = x2 - x1;
-			var dy = y2 - y1;
-			var l = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
-			var a = Math.atan(dy / dx);
+			let x1 = rect.right;
+			let y1 = rect.top;
+			let x2 = document.documentElement.clientWidth - 32;
+			let y2 = 50; //0;
+			let dx = x2 - x1;
+			let dy = y2 - y1;
+			let l = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+			let a = Math.atan(dy / dx);
 //console.log(x1, y1, x2, y2, dx, dy, l);
-			var arrow = document.createElement("div");
-			var shaft1 = document.createElement("hr");
-			var shaft2 = document.createElement("hr");
-			var tip = document.createElement("span");
+			let arrow = document.createElement("div");
+			let shaft1 = document.createElement("hr");
+			let shaft2 = document.createElement("hr");
+			let tip = document.createElement("span");
 			arrow.style.cssText = `
 all: initial;
 position: absolute;
@@ -109,7 +109,7 @@ addEvents(document);
 
 //track DOM changes
 let observer = new MutationObserver(mutations => {
-	for (var mutation of mutations)
+	for (let mutation of mutations)
 	{
 		//console.log(mutation);
 		if (mutation.type == 'childList')
