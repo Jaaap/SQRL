@@ -26,7 +26,6 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [ ] Explain import needs Rescue Code, cannot import with Password
 - [x] Explain Settings > Password > Remember
 - [x] Automatic formatting for textual identity input
-- [x] Automatic formatting (add and remove whitespace) for textual identity input
 
 ## Feature requests
 - Change name of identity
