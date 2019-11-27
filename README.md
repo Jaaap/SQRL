@@ -26,10 +26,10 @@ Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfa
 - [ ] Explain import needs Rescue Code, cannot import with Password
 - [x] Explain Settings > Password > Remember
 - [x] Automatic formatting for textual identity input
+- [x] Automatic formatting (add and remove whitespace) for textual identity input
 
 ## Feature requests
 - Change name of identity
-- Automatic formatting (add and remove whitespace) for textual identity input
 - Keep a list of sites where SQRL was used
 	- Click a link to open the site and log in to it
 	- Panic button which locks all known sites
