@@ -342,19 +342,17 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 				throw new Error("ERRFE006", "No qry in responseMap1");
 
 			let tif1 = Number.parseInt(responseMap1.tif, 16);
-			if (!bitIsSet(tif1, IP_MATCH))
-			{
+			if (bitIsSet(tif1, TRANSIENT_ERROR))
+				throw new Error("ERRFE016", "TRANSIENT_ERROR error in tif1");
+			if (bitIsSet(tif1, COMMAND_FAILED))
+				throw new Error("ERRFE017", "COMMAND_FAILED error in tif1");
+			if (!bitIsSet(tif1, IP_MATCH)) //IP_MATCH must come after TRANSIENT_ERROR and COMMAND_FAILED
 				throw new Error("ERRFE012", "IP MISMATCH on 1st call");
-			}
 
 			if (bitIsSet(tif1, SQRL_DISABLED))
 				throw new Error("ERRFE014", "SQRL_DISABLED error in tif1");
 			if (bitIsSet(tif1, UNSUPPORTED_FUNCTION))
 				throw new Error("ERRFE015", "UNSUPPORTED_FUNCTION error in tif1");
-			if (bitIsSet(tif1, TRANSIENT_ERROR))
-				throw new Error("ERRFE016", "TRANSIENT_ERROR error in tif1");
-			if (bitIsSet(tif1, COMMAND_FAILED))
-				throw new Error("ERRFE017", "COMMAND_FAILED error in tif1");
 			if (bitIsSet(tif1, CLIENT_FAILURE))
 				throw new Error("ERRFE018", "CLIENT_FAILURE error in tif1");
 			if (bitIsSet(tif1, BAD_ID))
@@ -444,18 +442,16 @@ async function doServerRequest(linkUrl, server, windowLocUrl, passwdFromPopupAB)
 
 		let tif2 = Number.parseInt(responseMap2.tif, 16);
 
-		if (!bitIsSet(tif2, IP_MATCH))
-			throw new Error("ERRFE012", "IP MISMATCH on 2nd call");
-		//if (!bitIsSet(tif2, ID_MATCH) && !bitIsSet(tif2, PREV_ID_MATCH))
-		//	throw new Error("ERRFE003", "No IDMATCH or PREV_IDMATCH in responseMap2");
-		if (bitIsSet(tif2, SQRL_DISABLED))
-			throw new Error("ERRFE014", "SQRL_DISABLED error in tif2");
-		if (bitIsSet(tif2, UNSUPPORTED_FUNCTION))
-			throw new Error("ERRFE015", "UNSUPPORTED_FUNCTION error in tif2");
 		if (bitIsSet(tif2, TRANSIENT_ERROR))
 			throw new Error("ERRFE016", "TRANSIENT_ERROR error in tif2");
 		if (bitIsSet(tif2, COMMAND_FAILED))
 			throw new Error("ERRFE017", "COMMAND_FAILED error in tif2");
+		if (!bitIsSet(tif2, IP_MATCH)) //IP_MATCH must come after TRANSIENT_ERROR and COMMAND_FAILED
+			throw new Error("ERRFE012", "IP MISMATCH on 2nd call");
+		if (bitIsSet(tif2, SQRL_DISABLED))
+			throw new Error("ERRFE014", "SQRL_DISABLED error in tif2");
+		if (bitIsSet(tif2, UNSUPPORTED_FUNCTION))
+			throw new Error("ERRFE015", "UNSUPPORTED_FUNCTION error in tif2");
 		if (bitIsSet(tif2, CLIENT_FAILURE))
 			throw new Error("ERRFE018", "CLIENT_FAILURE error in tif2");
 		if (bitIsSet(tif2, BAD_ID))
