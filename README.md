@@ -10,9 +10,7 @@ Install latest release from: https://addons.mozilla.org/en-US/firefox/addon/sqrl
 **OR** clone or download this WebExtension, then create an xpi file with a command like `cd SQRL; zip -r SQRL.xpi *` then open FireFox Developer Edition (normal Firefox will not work), go to about:config, search for xpinstall.signatures.required and set it to false, then go to about:addons, Click on the gear icon (⚙) pulldown, click "Install Addon From File..." and open the SQRL.xpi file.
 
 ### Chrome
-Install latest release from: https://chrome.google.com/webstore/detail/sqrl/adfaiodpchglcmalaiifkcclimpffono
-
-**OR** clone or download this WebExtension, then go to chrome://extensions/, enable "Developer mode" and then "Load unpacked extension...". Point it to the root of the SQRL folder/dir you just created.
+Clone or download this WebExtension, then go to chrome://extensions/, enable "Developer mode" and then "Load unpacked extension...". Point it to the root of the SQRL folder/dir you just created.
 
 ## TODO's
 - [x] Better error messages on Rescue Code input
